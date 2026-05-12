@@ -27,7 +27,8 @@ describe('CLI exit-code contract', () => {
   });
 
   it('not-yet-implemented stub exits 3 (runtime)', () => {
-    const result = spawnSync('node', [CLI, 'send', '--chat-id', '1', '--text', 'x'], {
+    // `tool` is still a stub at this commit (lands in C7 / #31).
+    const result = spawnSync('node', [CLI, 'tool', 'list'], {
       encoding: 'utf8',
     });
     expect(result.status).toBe(3);

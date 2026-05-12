@@ -28,3 +28,7 @@ export { buildPromptV1 } from './prompt-builder.js';
 export type { PromptBuilderInput, PromptBuilderOutput } from './prompt-builder.js';
 export { openTrace } from './run-tracer.js';
 export type { TraceEvent, TraceEventType, RunTracer } from './run-tracer.js';
+export { buildAppContext } from './build-app-context.js';
+export type { BuiltAppContext } from './build-app-context.js';
+export { sendInjectedMessage } from './send-message.js';
+export type { SendOutcome } from './send-message.js';
