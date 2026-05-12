@@ -15,3 +15,4 @@ mvpclaw.config.example.json
 .mvpclaw-progress.json
 skills/**/*.md
 prompts/**/*.md
+INSTALL.md
