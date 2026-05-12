@@ -18,3 +18,10 @@ export * as SessionsRepo from './repos/sessions.repo.js';
 export * as MessagesRepo from './repos/messages.repo.js';
 export * as RunsRepo from './repos/runs.repo.js';
 export * as OutboxRepo from './repos/outbox.repo.js';
+
+// Row types re-exported flat so consumers can `import type { ChatRow } from '../db/index.js'`.
+export type { ChatRow } from './repos/chats.repo.js';
+export type { SessionRow } from './repos/sessions.repo.js';
+export type { MessageRow } from './repos/messages.repo.js';
+export type { AgentRunRow } from './repos/runs.repo.js';
+export type { OutboxRow, OutboxStatus } from './repos/outbox.repo.js';
