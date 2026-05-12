@@ -26,7 +26,7 @@ import {
 } from '../db/repos/runs.repo.js';
 import { insertMessage } from '../db/repos/messages.repo.js';
 import type { AppContext } from './app-context.js';
-import { buildPromptV1 } from './prompt-builder.js';
+import { composePrompt, truncateHistory } from '../prompts/index.js';
 import type { ResolvedInbound } from './inbound-router.js';
 import { openTrace } from './run-tracer.js';
 
@@ -76,29 +76,45 @@ export async function runAgentTurn(
     text_len: resolved.message.text.length,
   });
 
-  // 3. Load history (excluding the just-inserted inbound).
+  // 3. Load history (excluding the just-inserted inbound), apply sliding window.
   const allHistory = recentMessages(
     ctx.db,
     resolved.session.id,
     ctx.config.agent.maxHistoryMessages,
   );
-  const history = allHistory
+  const rawHistory = allHistory
     .filter((m) => m.id !== resolved.message.id)
     .map((m) => ({
       role: (m.direction === 'inbound' ? 'user' : 'assistant') as 'user' | 'assistant',
       content: m.text,
     }));
+  const windowed = truncateHistory(rawHistory, {
+    windowMessages: ctx.config.idle.windowMessages,
+    windowTokens: ctx.config.idle.windowTokens,
+  });
+  if (windowed.dropped > 0) {
+    tracer.write({
+      type: 'history_truncated',
+      dropped: windowed.dropped,
+      approx_tokens: windowed.approxTokens,
+    });
+  }
 
-  const prompt = buildPromptV1({
+  const prompt = composePrompt({
     systemPromptFile: ctx.config.agent.systemPromptFile,
-    skills: [], // P7 populates this from disk; for P4 we ship with [].
-    history,
+    skills: ctx.skills,
+    history: windowed.history,
     userText: resolved.message.text,
+    chatId: resolved.chat.id,
+    db: ctx.db,
+    tools: ctx.tools,
   });
   tracer.write({
     type: 'prompt_built',
     system_prompt_len: prompt.systemPrompt.length,
-    history_count: history.length,
+    history_count: windowed.history.length,
+    tool_count: prompt.tools.length,
+    breakpoints: prompt.breakpoints,
   });
 
   // 4. Mark running + invoke provider.

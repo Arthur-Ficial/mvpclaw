@@ -3,7 +3,7 @@
  * `mvpclaw.config.json` file. The schema is the contract; any field not
  * declared here is rejected at load time.
  */
-export { MvpClawConfig } from './config.schema.js';
+export { MvpClawConfig, ProactiveConfig, IdleConfig } from './config.schema.js';
 export type {
   MvpClawConfig as MvpClawConfigType,
   AgentProviderName,

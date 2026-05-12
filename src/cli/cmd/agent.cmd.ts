@@ -14,13 +14,13 @@ import { existsSync, readFileSync } from 'node:fs';
 import { ulid } from 'ulid';
 import {
   buildAppContext,
-  buildPromptV1,
   routeInbound,
   runAgentTurn,
   type AppContext,
 } from '../../app/index.js';
 import type { InboundMessage } from '../../channels/index.js';
 import { loadConfig } from '../../config/index.js';
+import { composePrompt, truncateHistory } from '../../prompts/index.js';
 import {
   ChatsRepo,
   MessagesRepo,
@@ -187,11 +187,18 @@ const dryRunCmd = defineCommand({
       if (!chat) {
         exitNotFound(`chat "${String(args['chat-id'])}" not found`);
       }
-      const out = buildPromptV1({
+      const windowed = truncateHistory([], {
+        windowMessages: built.ctx.config.idle.windowMessages,
+        windowTokens: built.ctx.config.idle.windowTokens,
+      });
+      const out = composePrompt({
         systemPromptFile: built.ctx.config.agent.systemPromptFile,
-        skills: [],
-        history: [],
+        skills: built.ctx.skills,
+        history: windowed.history,
         userText: text,
+        chatId: chat.id,
+        db: built.ctx.db,
+        tools: built.ctx.tools,
       });
       writeOut(
         {
@@ -199,6 +206,8 @@ const dryRunCmd = defineCommand({
           systemPrompt: out.systemPrompt,
           history: out.history,
           userText: out.userText,
+          tools: out.tools,
+          breakpoints: out.breakpoints,
           provider: built.ctx.config.agent.provider,
           model: built.ctx.config.openrouter.defaultModel,
         },

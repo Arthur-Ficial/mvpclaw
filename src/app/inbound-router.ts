@@ -18,6 +18,7 @@
  * traffic. Per the spec, command handlers do NOT call the model.
  */
 import type { InboundMessage } from '../channels/index.js';
+import type { IdleConfig } from '../config/index.js';
 import {
   ChatsRepo,
   MessagesRepo,
@@ -47,9 +48,15 @@ export interface ResolvedInbound {
  *
  * @param db - Open SQLite handle.
  * @param msg - The normalised `InboundMessage` from the channel adapter.
+ * @param idle - Optional idle config; enables auto-reset when the gap since
+ *               the last message exceeds `autoResetAfterSeconds` (0 disables).
  * @returns A `ResolvedInbound` with `isDuplicate` / `isHandledCommand` flags.
  */
-export function routeInbound(db: Db, msg: InboundMessage): ResolvedInbound {
+export function routeInbound(
+  db: Db,
+  msg: InboundMessage,
+  idle?: IdleConfig,
+): ResolvedInbound {
   // 1. Upsert chat.
   const chat = ChatsRepo.upsertChat(db, {
     provider: msg.channel,
@@ -58,8 +65,22 @@ export function routeInbound(db: Db, msg: InboundMessage): ResolvedInbound {
     type: 'private',
   });
 
-  // 2. Resolve active session (create if needed).
+  // 2. Resolve active session (create if needed). Optionally auto-reset after idle.
   let session = SessionsRepo.getOrCreateActiveSession(db, chat.id);
+  if (idle && idle.autoResetAfterSeconds > 0) {
+    const last = db
+      .prepare(
+        'SELECT created_at FROM messages WHERE session_id = ? ORDER BY created_at DESC, rowid DESC LIMIT 1',
+      )
+      .get(session.id) as { created_at: string } | undefined;
+    if (last) {
+      const lastMs = Date.parse(last.created_at);
+      if (Number.isFinite(lastMs) && Date.now() - lastMs > idle.autoResetAfterSeconds * 1000) {
+        SessionsRepo.closeActiveSessions(db, chat.id);
+        session = SessionsRepo.getOrCreateActiveSession(db, chat.id);
+      }
+    }
+  }
 
   // 3. Insert inbound (dedup on UNIQUE constraint).
   const inserted = MessagesRepo.insertMessage(db, {

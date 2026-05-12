@@ -24,8 +24,13 @@ export { runAgentTurn } from './agent-orchestrator.js';
 export type { AgentTurnResult } from './agent-orchestrator.js';
 export { drainOutbox } from './outbox-worker.js';
 export type { DrainResult } from './outbox-worker.js';
-export { buildPromptV1 } from './prompt-builder.js';
-export type { PromptBuilderInput, PromptBuilderOutput } from './prompt-builder.js';
+export {
+  evaluateProactive,
+  recordProactiveSend,
+  setChatBlocked,
+  isInQuietHours,
+} from './proactive-policy.js';
+export type { ProactiveDecision } from './proactive-policy.js';
 export { openTrace } from './run-tracer.js';
 export type { TraceEvent, TraceEventType, RunTracer } from './run-tracer.js';
 export { buildAppContext } from './build-app-context.js';

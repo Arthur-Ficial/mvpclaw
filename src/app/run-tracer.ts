@@ -26,6 +26,7 @@ import { redactString } from '../logging/index.js';
 export type TraceEventType =
   | 'inbound_message_received'
   | 'prompt_built'
+  | 'history_truncated'
   | 'provider_started'
   | 'provider_event'
   | 'tool_call_started'

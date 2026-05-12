@@ -115,6 +115,39 @@ export const McpConfig = z.object({
 });
 export type McpConfig = z.infer<typeof McpConfig>;
 
+/** Proactive-send policy (spec §33). */
+export const ProactiveConfig = z.object({
+  /** Quiet-hours window in 24h `HH:mm` form (inclusive start, exclusive end). */
+  quietHours: z
+    .object({
+      start: z
+        .string()
+        .regex(/^\d{2}:\d{2}$/)
+        .default('22:00'),
+      end: z
+        .string()
+        .regex(/^\d{2}:\d{2}$/)
+        .default('08:00'),
+    })
+    .default({ start: '22:00', end: '08:00' }),
+  /** Maximum proactive sends per chat per local-day. */
+  maxPerChatPerDay: z.number().int().nonnegative().default(6),
+  /** Minimum seconds between two proactive sends to the same chat. */
+  minGapSeconds: z.number().int().nonnegative().default(900),
+});
+export type ProactiveConfig = z.infer<typeof ProactiveConfig>;
+
+/** Idle / sliding-window config (spec §27). */
+export const IdleConfig = z.object({
+  /** Maximum messages kept in the sliding window before truncation. */
+  windowMessages: z.number().int().positive().default(40),
+  /** Maximum token budget for the sliding window (approx, char/4). */
+  windowTokens: z.number().int().positive().default(24_000),
+  /** Seconds of chat inactivity after which the next inbound auto-resets. */
+  autoResetAfterSeconds: z.number().int().nonnegative().default(0),
+});
+export type IdleConfig = z.infer<typeof IdleConfig>;
+
 /** Skills loader config. */
 export const SkillsConfig = z.object({
   enabled: z.boolean().default(true),
@@ -160,6 +193,8 @@ export const MvpClawConfig = z.object({
   gemini: GeminiConfig.default({} as never),
   mcp: McpConfig.default({} as never),
   skills: SkillsConfig.default({} as never),
+  proactive: ProactiveConfig.default({} as never),
+  idle: IdleConfig.default({} as never),
   logging: LoggingConfig.default({} as never),
 });
 export type MvpClawConfig = z.infer<typeof MvpClawConfig>;

@@ -16,8 +16,14 @@ import {
   claimOutboxRow,
   markOutboxSent,
   markOutboxFailed,
+  markOutboxCancelled,
 } from '../db/repos/outbox.repo.js';
 import type { AppContext } from './app-context.js';
+import {
+  evaluateProactive,
+  recordProactiveSend,
+  setChatBlocked,
+} from './proactive-policy.js';
 
 /** Summary of one drain call. */
 export interface DrainResult {
@@ -27,6 +33,10 @@ export interface DrainResult {
   sent: number;
   /** How many failed (`failed`). */
   failed: number;
+  /** How many proactive rows were deferred (kept `pending` for a later tick). */
+  deferred: number;
+  /** How many rows were cancelled by a hard gate (e.g., chat_blocked). */
+  cancelled: number;
 }
 
 /**
@@ -50,7 +60,26 @@ export async function drainOutbox(
 
   let sent = 0;
   let failed = 0;
+  let deferred = 0;
+  let cancelled = 0;
+  const tz = ctx.config.app.defaultTimezone;
   for (const row of pending) {
+    // Proactive gating — only rows with no run_id are scheduler-originated.
+    const isProactive = row.run_id === null;
+    if (isProactive) {
+      const decision = evaluateProactive(ctx.db, row.chat_id, ctx.config.proactive, Date.now(), tz);
+      if (!decision.allowed) {
+        if (decision.reason === 'chat_blocked') {
+          markOutboxCancelled(ctx.db, row.id);
+          cancelled++;
+        } else {
+          // Soft defer — leave pending; next drain re-evaluates.
+          deferred++;
+        }
+        continue;
+      }
+    }
+
     if (!claimOutboxRow(ctx.db, row.id)) {
       // Another caller grabbed it between list and claim — skip.
       continue;
@@ -75,12 +104,24 @@ export async function drainOutbox(
         text: row.text,
       });
       markOutboxSent(ctx.db, row.id, result.providerMessageId);
+      if (isProactive) {
+        recordProactiveSend(ctx.db, row.chat_id, Date.now(), tz);
+      }
       sent++;
     } catch (err) {
-      markOutboxFailed(ctx.db, row.id, err instanceof Error ? err.message : String(err));
-      failed++;
+      const message = err instanceof Error ? err.message : String(err);
+      // Telegram's 403 "Forbidden: bot was blocked by the user" → flip the
+      // chat to blocked so we stop trying. Treat as cancelled, not failed.
+      if (/403|blocked by the user|chat not found/i.test(message)) {
+        setChatBlocked(ctx.db, row.chat_id, 1);
+        markOutboxCancelled(ctx.db, row.id);
+        cancelled++;
+      } else {
+        markOutboxFailed(ctx.db, row.id, message);
+        failed++;
+      }
     }
   }
 
-  return { attempted: pending.length, sent, failed };
+  return { attempted: pending.length, sent, failed, deferred, cancelled };
 }

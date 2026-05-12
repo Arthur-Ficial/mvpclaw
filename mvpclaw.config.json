@@ -68,6 +68,16 @@
     "skillsDir": "./skills",
     "runtimeClaudeSkillsDir": "~/.mvpclaw/workspaces/default/.claude/skills"
   },
+  "proactive": {
+    "quietHours": { "start": "22:00", "end": "08:00" },
+    "maxPerChatPerDay": 6,
+    "minGapSeconds": 900
+  },
+  "idle": {
+    "windowMessages": 40,
+    "windowTokens": 24000,
+    "autoResetAfterSeconds": 0
+  },
   "logging": {
     "level": "info",
     "redact": ["TELEGRAM_BOT_TOKEN", "OPENROUTER_API_KEY", "ANTHROPIC_API_KEY", "GEMINI_API_KEY"]
