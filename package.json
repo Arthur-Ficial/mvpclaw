@@ -21,9 +21,10 @@
     "test:watch": "vitest",
     "test:e2e": "vitest run --passWithNoTests tests/e2e",
     "migrate": "tsx src/cli/main.ts db migrate",
-    "check": "pnpm typecheck && pnpm lint && pnpm format:check && pnpm test && pnpm test:e2e && pnpm build"
+    "check": "pnpm typecheck && pnpm lint && pnpm format:check && pnpm build && pnpm test && pnpm test:e2e"
   },
   "dependencies": {
+    "citty": "^0.2.2",
     "pino": "^9.5.0",
     "zod": "^3.23.8"
   },

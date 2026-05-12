@@ -1,32 +1,62 @@
 #!/usr/bin/env node
 /**
- * MVPClaw CLI entrypoint — P1 stub.
+ * MVPClaw CLI entrypoint.
  *
- * Phase 1 only ships the typechecking + config-loading + logger skeleton.
- * Ticket #C1 (Phase 1.3) replaces this stub with the full citty-driven
- * dispatcher and the 15-command surface.
+ * Citty-driven dispatcher. Each sub-command lives in `src/cli/cmd/<name>.cmd.ts`
+ * and is wired here. The CLI is the project's first-class, Unix-style surface —
+ * see `CLAUDE.md` §"CLI-first / AI-steerable" for the contract.
  *
- * For now this entrypoint:
- *   1. Loads the config (proves the loader works end-to-end).
- *   2. Creates the logger.
- *   3. Prints a single status line to stdout and exits 0.
+ * The 16 top-level sub-commands listed under `subCommands` below cover every
+ * agent capability (per `ARCHITECTURE.md` §1bis). At Phase 1.3 most are stubs
+ * that exit 3 with a clear "not yet implemented (ticket Cn / #m)" message;
+ * later phases fill them in.
+ *
+ * Universal flags (`--json`, `--quiet`, `--verbose`, `--config`) are accepted
+ * by every sub-command and resolved via `src/cli/output.ts`.
  */
-import { loadConfig } from '../config/index.js';
-import { makeLogger } from '../logging/index.js';
+import { defineCommand, runMain } from 'citty';
+import { agentCmd } from './cmd/agent.cmd.js';
+import { chatCmd } from './cmd/chat.cmd.js';
+import { configCmd } from './cmd/config.cmd.js';
+import { dbCmd } from './cmd/db.cmd.js';
+import { doctorCmd } from './cmd/doctor.cmd.js';
+import { mcpCmd } from './cmd/mcp.cmd.js';
+import { memoryCmd } from './cmd/memory.cmd.js';
+import { outboxCmd } from './cmd/outbox.cmd.js';
+import { replayCmd } from './cmd/replay.cmd.js';
+import { sendCmd } from './cmd/send.cmd.js';
+import { skillCmd } from './cmd/skill.cmd.js';
+import { startCmd } from './cmd/start.cmd.js';
+import { statusCmd } from './cmd/status.cmd.js';
+import { taskCmd } from './cmd/task.cmd.js';
+import { toolCmd } from './cmd/tool.cmd.js';
+import { traceCmd } from './cmd/trace.cmd.js';
 
-function main(): void {
-  const config = loadConfig();
-  const log = makeLogger(config.logging);
-  log.info({ phase: 'P1' }, 'mvpclaw skeleton loaded');
-  // stdout = data; this is the only stdout write in this stub.
-  process.stdout.write(
-    JSON.stringify({
-      ok: true,
-      phase: 'P1',
-      provider: config.agent.provider,
-      note: 'CLI surface stubbed; ticket C1 replaces this entrypoint with the citty dispatcher.',
-    }) + '\n',
-  );
-}
+const main = defineCommand({
+  meta: {
+    name: 'mvpclaw',
+    version: '0.0.0-dev',
+    description:
+      'Telegram-to-AI-agent bridge with a CLI-first, AI-steerable surface. Run `mvpclaw <sub> --help`.',
+  },
+  subCommands: {
+    send: sendCmd,
+    outbox: outboxCmd,
+    chat: chatCmd,
+    agent: agentCmd,
+    tool: toolCmd,
+    task: taskCmd,
+    memory: memoryCmd,
+    skill: skillCmd,
+    mcp: mcpCmd,
+    db: dbCmd,
+    trace: traceCmd,
+    config: configCmd,
+    doctor: doctorCmd,
+    status: statusCmd,
+    replay: replayCmd,
+    start: startCmd,
+  },
+});
 
-main();
+runMain(main);
