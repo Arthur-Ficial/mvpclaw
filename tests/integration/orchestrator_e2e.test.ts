@@ -8,6 +8,7 @@ import { createCliInjectChannel } from '../../src/channels/index.js';
 import { MvpClawConfig } from '../../src/config/index.js';
 import { applyMigrations, openDb, OutboxRepo } from '../../src/db/index.js';
 import { drainOutbox, routeInbound, runAgentTurn, type AppContext } from '../../src/app/index.js';
+import { createToolRegistry, registerBuiltinTools } from '../../src/tools/index.js';
 
 const MIGRATIONS = resolve(__dirname, '../../migrations');
 
@@ -59,6 +60,8 @@ describe.skipIf(skip)('orchestrator end-to-end (real OpenRouter, free model)', (
       title: 'mvpclaw-integration-tests',
     });
 
+    const tools = createToolRegistry();
+    registerBuiltinTools(tools, { config, getSkills: () => [] });
     ctx = {
       config,
       log: pino({ level: 'silent' }),
@@ -66,6 +69,8 @@ describe.skipIf(skip)('orchestrator end-to-end (real OpenRouter, free model)', (
       channels: { 'cli-inject': cliInject },
       providers: { openrouter },
       tracesDir: join(tmp, 'traces'),
+      tools,
+      skills: [],
     };
   });
 

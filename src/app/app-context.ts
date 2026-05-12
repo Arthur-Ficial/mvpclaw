@@ -12,10 +12,11 @@
  * "external call injectable for tests" honest.
  */
 import type { Logger } from 'pino';
-import type { AgentProviderAdapter } from '../agent/index.js';
+import type { AgentProviderAdapter, LoadedSkill } from '../agent/index.js';
 import type { ChannelAdapter } from '../channels/index.js';
 import type { MvpClawConfigType } from '../config/index.js';
 import type { Db } from '../db/index.js';
+import type { ToolRegistry } from '../tools/index.js';
 
 /** The DI container the orchestrator threads through every call. */
 export interface AppContext {
@@ -31,4 +32,8 @@ export interface AppContext {
   readonly providers: Readonly<Record<string, AgentProviderAdapter>>;
   /** Directory where per-run JSONL traces are written. */
   readonly tracesDir: string;
+  /** The single tool registry — built-ins + MCP + external tools. */
+  readonly tools: ToolRegistry;
+  /** Currently loaded skills (P7 populates from disk; for now ships as []). */
+  readonly skills: readonly LoadedSkill[];
 }

@@ -33,8 +33,8 @@ describe('CLI exit-code contract', () => {
   });
 
   it('not-yet-implemented stub exits 3 (runtime)', () => {
-    // `tool` is still a stub at this commit (lands in C7 / #31).
-    const result = spawnSync('node', [CLI, 'tool', 'list'], {
+    // 'start' is still a stub at this commit (lands when daemon mode goes in).
+    const result = spawnSync('node', [CLI, 'start'], {
       encoding: 'utf8',
     });
     expect(result.status).toBe(3);

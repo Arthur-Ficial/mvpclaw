@@ -16,7 +16,11 @@
  * context and then use it from anywhere — no awaited setup races.
  */
 import { resolve } from 'node:path';
-import { createOpenRouterProvider, type AgentProviderAdapter } from '../agent/index.js';
+import {
+  createOpenRouterProvider,
+  type AgentProviderAdapter,
+  type LoadedSkill,
+} from '../agent/index.js';
 import {
   createCliInjectChannel,
   createTelegramChannel,
@@ -27,6 +31,7 @@ import {
 import type { MvpClawConfigType } from '../config/index.js';
 import { applyMigrations, openDb, pathFromUrl } from '../db/index.js';
 import { makeLogger } from '../logging/index.js';
+import { createToolRegistry, registerBuiltinTools } from '../tools/index.js';
 import type { AppContext } from './app-context.js';
 
 /** The fully-wired context plus the cli-inject channel exposed for tests/CLI. */
@@ -83,6 +88,11 @@ export function buildAppContext(
 
   const tracesDir = resolve(process.cwd(), config.app.dataDir, 'traces');
 
+  // Tools + skills.
+  const skills: readonly LoadedSkill[] = []; // P7 (skill loader) populates this from disk.
+  const tools = createToolRegistry();
+  registerBuiltinTools(tools, { config, getSkills: () => skills });
+
   const ctx: AppContext = {
     config,
     log,
@@ -90,6 +100,8 @@ export function buildAppContext(
     channels,
     providers,
     tracesDir,
+    tools,
+    skills,
   };
 
   return { ctx, cliInject, telegram };
