@@ -47,7 +47,7 @@ describe('mvpclaw tool — end-to-end through compiled binary', () => {
     return { status: r.status, stdout: r.stdout, stderr: r.stderr };
   }
 
-  it('list returns 11 built-in (5 mvpclaw + 4 scheduler + 2 memory) + 2 external tools', () => {
+  it('list returns 18 built-in (5 mvpclaw + 4 scheduler + 2 memory + 7 power) + 2 external tools', () => {
     const r = runCli(['tool', 'list', '--json']);
     expect(r.status, r.stderr).toBe(0);
     const tools = JSON.parse(r.stdout) as Array<{ name: string; source: string; enabled: boolean }>;
@@ -55,8 +55,13 @@ describe('mvpclaw tool — end-to-end through compiled binary', () => {
     expect(names).toEqual(
       [
         'anthropic_web_search',
+        'bash_exec',
         'cancel_task',
+        'claude_spawn',
+        'codex_spawn',
+        'gemini_image',
         'gemini_research',
+        'list_dir',
         'list_tasks',
         'memory_append',
         'memory_read',
@@ -65,7 +70,9 @@ describe('mvpclaw tool — end-to-end through compiled binary', () => {
         'mvpclaw_read_recent_messages',
         'mvpclaw_read_skill',
         'mvpclaw_status',
+        'read_file',
         'schedule_task',
+        'screenshot',
         'update_task',
       ].sort(),
     );
@@ -83,11 +90,11 @@ describe('mvpclaw tool — end-to-end through compiled binary', () => {
     }
   });
 
-  it('list --source builtin returns 11 tools (5 mvpclaw + 4 scheduler + 2 memory)', () => {
+  it('list --source builtin returns 18 tools (5 mvpclaw + 4 scheduler + 2 memory + 7 power)', () => {
     const r = runCli(['tool', 'list', '--source', 'builtin', '--json']);
     expect(r.status).toBe(0);
     const tools = JSON.parse(r.stdout) as Array<{ name: string }>;
-    expect(tools.length).toBe(11);
+    expect(tools.length).toBe(18);
   });
 
   it('list --source anthropic returns the web-search tool', () => {
