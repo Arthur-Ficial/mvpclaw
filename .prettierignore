@@ -16,3 +16,4 @@ mvpclaw.config.example.json
 skills/**/*.md
 prompts/**/*.md
 INSTALL.md
+docker/README.md
