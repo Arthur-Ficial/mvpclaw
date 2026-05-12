@@ -20,3 +20,8 @@ export type {
 } from './channel.js';
 export { createCliInjectChannel } from './cli-inject.channel.js';
 export type { CliInjectChannel } from './cli-inject.channel.js';
+export { createTelegramChannel } from './telegram.channel.js';
+export type { TelegramChannelAdapter } from './telegram.channel.js';
+export { chunkText } from './telegram.format.js';
+export { parseSlashCommand, isBuiltinCommand, BUILTIN_COMMANDS } from './telegram.commands.js';
+export type { ParsedCommand, BuiltinCommand } from './telegram.commands.js';
