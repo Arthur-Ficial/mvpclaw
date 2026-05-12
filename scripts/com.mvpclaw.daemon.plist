@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.mvpclaw.daemon</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/opt/homebrew/bin/node</string>
+        <string>/Users/user/dev/mvpclaw/dist/cli/main.js</string>
+        <string>start</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/user/dev/mvpclaw</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/usr/bin:/bin</string>
+        <key>NODE_ENV</key>
+        <string>development</string>
+        <key>MVPCLAW_CONFIG</key>
+        <string>/Users/user/dev/mvpclaw/mvpclaw.config.json</string>
+        <key>TZ</key>
+        <string>Europe/Vienna</string>
+    </dict>
+
+    <!-- Secrets are injected via EnvironmentVariables at install time
+         (the installer reads .env or pass and rewrites this plist). -->
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>KeepAlive</key>
+    <dict>
+        <key>SuccessfulExit</key>
+        <false/>
+        <key>Crashed</key>
+        <true/>
+    </dict>
+
+    <key>StandardOutPath</key>
+    <string>/Users/user/dev/mvpclaw/data/daemon.stdout.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/user/dev/mvpclaw/data/daemon.stderr.log</string>
+
+    <key>ProcessType</key>
+    <string>Interactive</string>
+
+    <key>Nice</key>
+    <integer>0</integer>
+</dict>
+</plist>

@@ -48,15 +48,15 @@
     "serverTools": []
   },
   "anthropic": {
-    "enabled": false,
+    "enabled": true,
     "apiKeyEnv": "ANTHROPIC_API_KEY",
-    "webSearch": { "enabled": false, "maxUses": 5 }
+    "webSearch": { "enabled": true, "maxUses": 5 }
   },
   "gemini": {
-    "enabled": false,
+    "enabled": true,
     "apiKeyEnv": "GEMINI_API_KEY",
     "model": "gemini-2.5-flash",
-    "tools": { "googleSearch": false, "urlContext": false }
+    "tools": { "googleSearch": true, "urlContext": true }
   },
   "mcp": {
     "enabled": true,
