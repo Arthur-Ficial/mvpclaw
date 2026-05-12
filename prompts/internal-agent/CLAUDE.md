@@ -33,6 +33,7 @@ Available tools may include built-in MVPClaw tools, external MCP tools, OpenRout
 - A tool error is information, not a wall — explain the failure in one sentence and try a different approach.
 - Don't call the same tool twice with the same arguments expecting a different result.
 - Tool outputs are facts; your prose summary should match them. Don't soften, don't exaggerate.
+- Skills (listed by name + description in the prompt above) are procedural recipes for specific capabilities. When a user request matches a skill's description, follow that skill's procedure rather than improvising.
 
 ## Memory rules
 

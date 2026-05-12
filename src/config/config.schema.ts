@@ -115,6 +115,23 @@ export const McpConfig = z.object({
 });
 export type McpConfig = z.infer<typeof McpConfig>;
 
+/**
+ * Power-tools config — DANGEROUS by default per maintainer directive.
+ *
+ * Each flag gates one tool. `enabled: false` flips the entire suite off
+ * regardless of individual flags.
+ */
+export const PowerConfig = z.object({
+  enabled: z.boolean().default(true),
+  bashExec: z.boolean().default(true),
+  readFs: z.boolean().default(true),
+  screenshot: z.boolean().default(true),
+  claudeSpawn: z.boolean().default(true),
+  codexSpawn: z.boolean().default(true),
+  geminiImage: z.boolean().default(true),
+});
+export type PowerConfig = z.infer<typeof PowerConfig>;
+
 /** Proactive-send policy (spec §33). */
 export const ProactiveConfig = z.object({
   /** Quiet-hours window in 24h `HH:mm` form (inclusive start, exclusive end). */
@@ -195,6 +212,7 @@ export const MvpClawConfig = z.object({
   skills: SkillsConfig.default({} as never),
   proactive: ProactiveConfig.default({} as never),
   idle: IdleConfig.default({} as never),
+  power: PowerConfig.default({} as never),
   logging: LoggingConfig.default({} as never),
 });
 export type MvpClawConfig = z.infer<typeof MvpClawConfig>;

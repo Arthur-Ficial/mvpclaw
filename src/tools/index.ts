@@ -15,3 +15,4 @@ export { registerExternalTools } from './external-tools.js';
 export { createAnthropicWebSearchTool } from './anthropic-web-search.tool.js';
 export { createGeminiResearchTool } from './gemini-research.tool.js';
 export { registerSchedulerTools } from './scheduler-tools.js';
+export { registerPowerTools } from './power-tools.js';

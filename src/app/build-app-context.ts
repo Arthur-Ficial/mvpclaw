@@ -38,6 +38,7 @@ import {
   createToolRegistry,
   registerBuiltinTools,
   registerExternalTools,
+  registerPowerTools,
   registerSchedulerTools,
 } from '../tools/index.js';
 import type { AppContext } from './app-context.js';
@@ -148,6 +149,7 @@ export function buildAppContext(
   registerExternalTools(tools, config, env);
   registerSchedulerTools(tools);
   registerMemoryTools(tools, { redactEnvNames: config.logging.redact });
+  registerPowerTools(tools, config);
 
   const ctx: AppContext = {
     config,
