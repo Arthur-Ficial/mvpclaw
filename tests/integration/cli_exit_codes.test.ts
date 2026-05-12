@@ -33,8 +33,11 @@ describe('CLI exit-code contract', () => {
   });
 
   it('not-yet-implemented stub exits 3 (runtime)', () => {
-    // 'start' is still a stub at this commit (lands when daemon mode goes in).
-    const result = spawnSync('node', [CLI, 'start'], {
+    // `replay` is an alias-stub for `agent replay` and remains the canonical
+    // representative of the not-yet-implemented exit contract (exit 3 +
+    // "not yet implemented" on stderr). `start` graduated from stub to a
+    // daemon entrypoint and is no longer suitable for this assertion.
+    const result = spawnSync('node', [CLI, 'replay'], {
       encoding: 'utf8',
     });
     expect(result.status).toBe(3);

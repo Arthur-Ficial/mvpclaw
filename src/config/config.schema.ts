@@ -62,7 +62,7 @@ export const OpenRouterConfig = z.object({
   enabled: z.boolean().default(true),
   apiKeyEnv: z.string().default('OPENROUTER_API_KEY'),
   baseUrl: z.string().url().default('https://openrouter.ai/api/v1'),
-  defaultModel: z.string().min(1).default('meta-llama/llama-3.2-3b-instruct:free'),
+  defaultModel: z.string().min(1).default('openai/gpt-4o-mini'),
   enableServerTools: z.boolean().default(false),
   serverTools: z
     .array(

@@ -212,14 +212,18 @@ export class OpenRouterClient {
     if (this.opts.title !== undefined) {
       headers['X-Title'] = this.opts.title;
     }
+    const body = JSON.stringify({ ...req, stream: true });
+    if (process.env['MVPCLAW_DEBUG_HTTP'] === '1') {
+      process.stderr.write(`[mvpclaw-debug] POST stream body=${body}\n`);
+    }
     const res = await fetchImpl(`${this.opts.baseUrl}/chat/completions`, {
       method: 'POST',
       headers,
-      body: JSON.stringify({ ...req, stream: true }),
+      body,
     });
     if (!res.ok) {
-      const body = await res.text().catch(() => '');
-      throw new Error(`OpenRouter stream ${res.status}: ${body || res.statusText}`);
+      const respBody = await res.text().catch(() => '');
+      throw new Error(`OpenRouter stream ${res.status}: ${respBody || res.statusText}`);
     }
     if (!res.body) {
       throw new Error('OpenRouter stream: response body is null');

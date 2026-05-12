@@ -23,6 +23,7 @@ CLAUDE.local.md
 .DS_Store
 .idea/
 .vscode/
+.claude/
 
 # IMPORTANT — these ARE committed (do not add):
 # .mvpclaw-install.json   (committed; documents install state)
