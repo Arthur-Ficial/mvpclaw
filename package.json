@@ -28,6 +28,7 @@
     "@google/genai": "^2.1.0",
     "better-sqlite3": "^12.10.0",
     "citty": "^0.2.2",
+    "croner": "^10.0.1",
     "grammy": "^1.42.0",
     "gray-matter": "^4.0.3",
     "pino": "^9.5.0",

@@ -32,7 +32,12 @@ import type { MvpClawConfigType } from '../config/index.js';
 import { applyMigrations, openDb, pathFromUrl } from '../db/index.js';
 import { makeLogger } from '../logging/index.js';
 import { loadSkillsFromDir, syncSkillsToWorkspace } from '../skills/index.js';
-import { createToolRegistry, registerBuiltinTools, registerExternalTools } from '../tools/index.js';
+import {
+  createToolRegistry,
+  registerBuiltinTools,
+  registerExternalTools,
+  registerSchedulerTools,
+} from '../tools/index.js';
 import type { AppContext } from './app-context.js';
 
 /** The fully-wired context plus the cli-inject channel exposed for tests/CLI. */
@@ -113,6 +118,7 @@ export function buildAppContext(
   const tools = createToolRegistry();
   registerBuiltinTools(tools, { config, getSkills: () => skills });
   registerExternalTools(tools, config, env);
+  registerSchedulerTools(tools);
 
   const ctx: AppContext = {
     config,
