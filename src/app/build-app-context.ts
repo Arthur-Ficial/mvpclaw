@@ -31,6 +31,7 @@ import {
 import type { MvpClawConfigType } from '../config/index.js';
 import { applyMigrations, openDb, pathFromUrl } from '../db/index.js';
 import { makeLogger } from '../logging/index.js';
+import { loadSkillsFromDir, syncSkillsToWorkspace } from '../skills/index.js';
 import { createToolRegistry, registerBuiltinTools } from '../tools/index.js';
 import type { AppContext } from './app-context.js';
 
@@ -88,8 +89,26 @@ export function buildAppContext(
 
   const tracesDir = resolve(process.cwd(), config.app.dataDir, 'traces');
 
-  // Tools + skills.
-  const skills: readonly LoadedSkill[] = []; // P7 (skill loader) populates this from disk.
+  // Skills: scan the configured directory, validate frontmatter, upsert into
+  // the `skills` table. Sync the SKILL.md files into the Claude workspace
+  // so Claude CLI discovers them via its standard mechanism.
+  let skills: readonly LoadedSkill[] = [];
+  if (config.skills.enabled) {
+    const loaded = loadSkillsFromDir(resolve(process.cwd(), config.skills.skillsDir), db);
+    skills = loaded.skills;
+    if (loaded.errors.length > 0) {
+      for (const e of loaded.errors) {
+        log.warn({ skillPath: e.path, reason: e.reason }, 'skill-loader: validation error');
+      }
+    }
+    syncSkillsToWorkspace(
+      resolve(process.cwd(), config.skills.skillsDir),
+      config.skills.runtimeClaudeSkillsDir,
+    );
+  }
+
+  // Tools: build the registry and register every built-in. Built-ins read
+  // the skill list lazily so a later reload would be picked up.
   const tools = createToolRegistry();
   registerBuiltinTools(tools, { config, getSkills: () => skills });
 
