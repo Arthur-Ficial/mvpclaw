@@ -164,6 +164,19 @@ export function createTelegramChannel(
       };
     },
 
+    async typing(chatId: string): Promise<void> {
+      // Telegram's typing indicator auto-clears after ~5s OR on next message.
+      // We fire-and-forget; transient errors (rate-limit, network) are
+      // logged but don't abort the agent turn.
+      try {
+        await bot.api.sendChatAction(chatId, 'typing');
+      } catch (err) {
+        process.stderr.write(
+          `telegram: sendChatAction failed: ${err instanceof Error ? err.message : String(err)}\n`,
+        );
+      }
+    },
+
     async send(msg: OutboundMessage): Promise<SendResult> {
       const chunks = chunkText(msg.text, config.streaming.maxMessageChars);
       let lastMessageId: number | null = null;
@@ -205,6 +218,8 @@ export interface TelegramChannelAdapter extends ChannelAdapter {
   readonly name: 'telegram';
   /** Stop the long-poll loop and resolve any pending `receive()` waiter. */
   stop(): Promise<void>;
+  /** Show "typing…" in the chat (auto-clears after ~5s). */
+  typing(chatId: string): Promise<void>;
 }
 
 /**

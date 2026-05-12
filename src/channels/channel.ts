@@ -103,4 +103,14 @@ export interface ChannelAdapter {
    * @throws If the channel rejects the send (rate limit, blocked user, etc.).
    */
   send(msg: OutboundMessage): Promise<SendResult>;
+
+  /**
+   * Show a transient "typing" indicator on the channel. Optional — channels
+   * that have no concept of it (cli-inject, voice) leave this undefined.
+   * The orchestrator fires this when an inbound starts being processed so
+   * the human sees something is happening.
+   *
+   * @param chatId - External chat id (NOT the internal ULID).
+   */
+  typing?(chatId: string): Promise<void>;
 }

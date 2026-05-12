@@ -153,7 +153,23 @@ async function handleInbound(ctx: AppContext, inbound: InboundMessage): Promise<
     await drainOutbox(ctx, { chat_id: resolved.chat.id });
     return;
   }
+  // Show "typing…" in the channel while the model is running. Telegram's
+  // indicator auto-clears after ~5s; we refresh it on a 4s tick so it stays
+  // visible until the orchestrator finishes.
+  const channel = ctx.channels[inbound.channel];
+  let typingTimer: NodeJS.Timeout | null = null;
+  if (channel && typeof channel.typing === 'function') {
+    const fire = (): void => {
+      channel.typing?.(inbound.providerChatId).catch(() => {});
+    };
+    fire();
+    typingTimer = setInterval(fire, 4_000);
+    typingTimer.unref();
+  }
   const result = await runAgentTurn(ctx, resolved);
+  if (typingTimer) {
+    clearInterval(typingTimer);
+  }
   ctx.log.info(
     {
       runId: result.runId,
