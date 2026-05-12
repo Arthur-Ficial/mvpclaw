@@ -1,0 +1,15 @@
+node_modules
+dist
+data
+workspace
+coverage
+*.log
+.env
+.env.*
+ARCHITECTURE.md
+CLAUDE.md
+README.md
+pnpm-lock.yaml
+mvpclaw.config.json
+mvpclaw.config.example.json
+.mvpclaw-progress.json

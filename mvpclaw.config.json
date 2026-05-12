@@ -1,0 +1,75 @@
+{
+  "app": {
+    "name": "mvpclaw",
+    "dataDir": "./data",
+    "workspaceDir": "./workspace",
+    "defaultTimezone": "Europe/Vienna"
+  },
+  "database": {
+    "url": "file:./data/mvpclaw.sqlite"
+  },
+  "telegram": {
+    "enabled": true,
+    "tokenEnv": "TELEGRAM_BOT_TOKEN",
+    "mode": "polling",
+    "allowedChatIds": [],
+    "allowedUserIds": [],
+    "replyMode": "dm-and-mentioned-groups",
+    "streaming": {
+      "enabled": true,
+      "editIntervalMs": 1200,
+      "maxMessageChars": 3900
+    }
+  },
+  "agent": {
+    "provider": "openrouter",
+    "timeoutMs": 180000,
+    "maxHistoryMessages": 20,
+    "maxToolRounds": 8,
+    "systemPromptFile": "./prompts/internal-agent/CLAUDE.md"
+  },
+  "claudeCli": {
+    "command": "claude",
+    "useOpenRouter": true,
+    "outputFormat": "stream-json",
+    "allowedTools": ["Read", "mcp__mvpclaw-tools__*"],
+    "env": {
+      "ANTHROPIC_BASE_URL": "https://openrouter.ai/api",
+      "ANTHROPIC_AUTH_TOKEN": "${OPENROUTER_API_KEY}",
+      "ANTHROPIC_API_KEY": ""
+    }
+  },
+  "openrouter": {
+    "enabled": true,
+    "apiKeyEnv": "OPENROUTER_API_KEY",
+    "baseUrl": "https://openrouter.ai/api/v1",
+    "defaultModel": "meta-llama/llama-3.2-3b-instruct:free",
+    "enableServerTools": false,
+    "serverTools": []
+  },
+  "anthropic": {
+    "enabled": false,
+    "apiKeyEnv": "ANTHROPIC_API_KEY",
+    "webSearch": { "enabled": false, "maxUses": 5 }
+  },
+  "gemini": {
+    "enabled": false,
+    "apiKeyEnv": "GEMINI_API_KEY",
+    "model": "gemini-2.5-flash",
+    "tools": { "googleSearch": false, "urlContext": false }
+  },
+  "mcp": {
+    "enabled": true,
+    "servers": {},
+    "expose": { "toolsServer": true, "conversationsServer": true }
+  },
+  "skills": {
+    "enabled": true,
+    "skillsDir": "./skills",
+    "runtimeClaudeSkillsDir": "~/.mvpclaw/workspaces/default/.claude/skills"
+  },
+  "logging": {
+    "level": "info",
+    "redact": ["TELEGRAM_BOT_TOKEN", "OPENROUTER_API_KEY", "ANTHROPIC_API_KEY", "GEMINI_API_KEY"]
+  }
+}

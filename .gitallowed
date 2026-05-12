@@ -1,0 +1,18 @@
+# Allowed-strings list for git-secrets.
+#
+# These regexes describe SYNTHETIC test fixtures that look like provider keys
+# but are not real secrets. Anything matched here is exempted from the
+# git-secrets pre-commit hook.
+#
+# Real keys live ONLY in:
+#   - the gitignored .env file
+#   - pass(1)
+#   - macOS keychain (Claude Code subscription auth)
+#
+# If a real key ever lands in the diff: STOP, revoke the key, do not bypass
+# this hook. The patterns below are tight enough that real keys won't match.
+
+# Predictable alphabetical / repeating fake suffixes used in tests.
+sk-or-v1-abcdef[0-9a-z]+
+sk-or-v1-abcdefghijklmnop
+1234567890:AAHwIUabcdefghijklmnopqrstuvwxyz12
