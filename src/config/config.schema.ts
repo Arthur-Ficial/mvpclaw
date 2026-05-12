@@ -129,6 +129,7 @@ export const PowerConfig = z.object({
   claudeSpawn: z.boolean().default(true),
   codexSpawn: z.boolean().default(true),
   geminiImage: z.boolean().default(true),
+  telegramPhoto: z.boolean().default(true),
 });
 export type PowerConfig = z.infer<typeof PowerConfig>;
 

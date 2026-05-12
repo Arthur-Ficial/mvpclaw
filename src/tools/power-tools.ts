@@ -34,6 +34,7 @@ export function registerPowerTools(registry: ToolRegistry, config: MvpClawConfig
   registry.register(claudeSpawnTool(enabled && config.power.claudeSpawn));
   registry.register(codexSpawnTool(enabled && config.power.codexSpawn));
   registry.register(geminiImageTool(enabled && config.power.geminiImage));
+  registry.register(telegramPhotoTool(enabled && config.power.telegramPhoto));
 }
 
 // ───────────────────────────── bash_exec ─────────────────────────────
@@ -212,11 +213,20 @@ function claudeSpawnTool(enabled: boolean): ToolHandler {
         throw new Error('claude_spawn is disabled — set power.claudeSpawn to true');
       }
       const p = input as { prompt: string; timeoutMs?: number; cwd?: string };
+      // Drop ANTHROPIC_API_KEY so the spawned claude falls back to the
+      // host user's subscription auth (macOS keychain). The launchd plist
+      // sets ANTHROPIC_API_KEY for OUR provider; the sub-agent should use
+      // the host's subscription instead.
+      const env = { ...process.env };
+      delete env['ANTHROPIC_API_KEY'];
+      delete env['ANTHROPIC_AUTH_TOKEN'];
+      delete env['ANTHROPIC_BASE_URL'];
       const r = spawnSync('claude', ['--dangerously-skip-permissions', '-p', p.prompt], {
         cwd: p.cwd ?? homedir(),
         timeout: p.timeoutMs ?? 120_000,
         encoding: 'utf8',
         maxBuffer: 256 * 1024,
+        env,
       });
       return Promise.resolve({
         exitCode: r.status,
@@ -273,7 +283,7 @@ function geminiImageTool(enabled: boolean): ToolHandler {
     definition: {
       name: 'gemini_image',
       description:
-        'Generate an image via the Gemini Imagen API. Returns the path of the saved PNG. Requires GEMINI_API_KEY.',
+        'Generate an image via Gemini through OpenRouter (model google/gemini-2.5-flash-image). Returns the path of the saved PNG. Uses OPENROUTER_API_KEY.',
       inputSchema: {
         type: 'object',
         required: ['prompt'],
@@ -289,32 +299,94 @@ function geminiImageTool(enabled: boolean): ToolHandler {
       if (!enabled) {
         throw new Error('gemini_image is disabled — set power.geminiImage to true');
       }
-      const apiKey = process.env['GEMINI_API_KEY'];
+      const apiKey = process.env['OPENROUTER_API_KEY'];
       if (typeof apiKey !== 'string' || apiKey.length === 0) {
-        throw new Error('gemini_image: GEMINI_API_KEY env var is unset');
+        throw new Error('gemini_image: OPENROUTER_API_KEY env var is unset');
       }
       const p = input as { prompt: string; outPath?: string };
       const out = p.outPath ?? join(tmpdir(), `mvpclaw-img-${Date.now()}.png`);
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-001:generateImage?key=${apiKey}`;
-      const res = await fetch(url, {
+      const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: { text: p.prompt }, sampleCount: 1 }),
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+          'X-Title': 'mvpclaw',
+        },
+        body: JSON.stringify({
+          model: 'google/gemini-2.5-flash-image',
+          messages: [{ role: 'user', content: p.prompt }],
+          modalities: ['image', 'text'],
+        }),
       });
       if (!res.ok) {
         throw new Error(`gemini_image ${res.status}: ${await res.text().catch(() => '')}`);
       }
       const data = (await res.json()) as {
-        generatedImages?: Array<{ image?: { imageBytes?: string } }>;
+        choices?: Array<{
+          message?: { images?: Array<{ image_url?: { url?: string } }> };
+        }>;
       };
-      const b64 = data.generatedImages?.[0]?.image?.imageBytes;
-      if (typeof b64 !== 'string' || b64.length === 0) {
-        throw new Error('gemini_image: no image bytes returned');
+      const url = data.choices?.[0]?.message?.images?.[0]?.image_url?.url ?? '';
+      const m = url.match(/^data:image\/\w+;base64,(.+)$/);
+      if (!m) {
+        throw new Error('gemini_image: no image data url in response');
       }
-      const buf = Buffer.from(b64, 'base64');
+      const buf = Buffer.from(m[1] ?? '', 'base64');
       const fs = await import('node:fs/promises');
       await fs.writeFile(out, buf);
       return { path: out, bytes: buf.length };
+    },
+  };
+}
+
+// ───────────────────────────── telegram_photo ────────────────────────
+
+function telegramPhotoTool(enabled: boolean): ToolHandler {
+  return {
+    definition: {
+      name: 'telegram_photo',
+      description:
+        'Send a photo to a Telegram chat. Path must be an existing file on disk. Returns the Telegram message_id.',
+      inputSchema: {
+        type: 'object',
+        required: ['chatId', 'path'],
+        properties: {
+          chatId: { type: 'string', description: 'External Telegram chat id.' },
+          path: { type: 'string', description: 'Absolute path to the image file.' },
+          caption: { type: 'string', maxLength: 1024 },
+        },
+      },
+      source: 'builtin',
+      enabled,
+    },
+    async execute(input): Promise<{ messageId: number; ok: boolean }> {
+      if (!enabled) {
+        throw new Error('telegram_photo is disabled — set power.telegramPhoto to true');
+      }
+      const token = process.env['TELEGRAM_BOT_TOKEN'];
+      if (typeof token !== 'string' || token.length === 0) {
+        throw new Error('telegram_photo: TELEGRAM_BOT_TOKEN unset');
+      }
+      const p = input as { chatId: string; path: string; caption?: string };
+      const fs = await import('node:fs/promises');
+      const buf = await fs.readFile(p.path);
+      const form = new FormData();
+      form.append('chat_id', p.chatId);
+      if (p.caption) form.append('caption', p.caption);
+      form.append('photo', new Blob([buf]), p.path.split('/').pop() ?? 'photo.png');
+      const res = await fetch(`https://api.telegram.org/bot${token}/sendPhoto`, {
+        method: 'POST',
+        body: form,
+      });
+      const data = (await res.json()) as {
+        ok: boolean;
+        result?: { message_id: number };
+        description?: string;
+      };
+      if (!data.ok) {
+        throw new Error(`telegram_photo: ${data.description ?? 'unknown error'}`);
+      }
+      return { ok: true, messageId: data.result?.message_id ?? 0 };
     },
   };
 }
