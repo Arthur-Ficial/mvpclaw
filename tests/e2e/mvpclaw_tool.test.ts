@@ -47,7 +47,7 @@ describe('mvpclaw tool — end-to-end through compiled binary', () => {
     return { status: r.status, stdout: r.stdout, stderr: r.stderr };
   }
 
-  it('list returns 9 built-in (5 mvpclaw + 4 scheduler) + 2 external tools', () => {
+  it('list returns 11 built-in (5 mvpclaw + 4 scheduler + 2 memory) + 2 external tools', () => {
     const r = runCli(['tool', 'list', '--json']);
     expect(r.status, r.stderr).toBe(0);
     const tools = JSON.parse(r.stdout) as Array<{ name: string; source: string; enabled: boolean }>;
@@ -58,6 +58,8 @@ describe('mvpclaw tool — end-to-end through compiled binary', () => {
         'cancel_task',
         'gemini_research',
         'list_tasks',
+        'memory_append',
+        'memory_read',
         'mvpclaw_datetime',
         'mvpclaw_list_skills',
         'mvpclaw_read_recent_messages',
@@ -81,11 +83,11 @@ describe('mvpclaw tool — end-to-end through compiled binary', () => {
     }
   });
 
-  it('list --source builtin returns 9 tools (5 mvpclaw + 4 scheduler)', () => {
+  it('list --source builtin returns 11 tools (5 mvpclaw + 4 scheduler + 2 memory)', () => {
     const r = runCli(['tool', 'list', '--source', 'builtin', '--json']);
     expect(r.status).toBe(0);
     const tools = JSON.parse(r.stdout) as Array<{ name: string }>;
-    expect(tools.length).toBe(9);
+    expect(tools.length).toBe(11);
   });
 
   it('list --source anthropic returns the web-search tool', () => {

@@ -19,6 +19,7 @@ export * as MessagesRepo from './repos/messages.repo.js';
 export * as RunsRepo from './repos/runs.repo.js';
 export * as OutboxRepo from './repos/outbox.repo.js';
 export * as TasksRepo from './repos/tasks.repo.js';
+export * as ChatMemoryRepo from './repos/chat-memory.repo.js';
 
 // Row types re-exported flat so consumers can `import type { ChatRow } from '../db/index.js'`.
 export type { ChatRow } from './repos/chats.repo.js';
