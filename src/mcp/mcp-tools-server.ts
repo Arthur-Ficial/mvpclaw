@@ -38,7 +38,10 @@ export function buildMcpToolsList(registry: ToolRegistry): McpServerTool[] {
         const result = await h.execute(input, { db: registryDb(registry) });
         return {
           content: [
-            { type: 'text' as const, text: typeof result === 'string' ? result : JSON.stringify(result) },
+            {
+              type: 'text' as const,
+              text: typeof result === 'string' ? result : JSON.stringify(result),
+            },
           ],
         };
       },

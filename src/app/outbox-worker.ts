@@ -19,11 +19,7 @@ import {
   markOutboxCancelled,
 } from '../db/repos/outbox.repo.js';
 import type { AppContext } from './app-context.js';
-import {
-  evaluateProactive,
-  recordProactiveSend,
-  setChatBlocked,
-} from './proactive-policy.js';
+import { evaluateProactive, recordProactiveSend, setChatBlocked } from './proactive-policy.js';
 
 /** Summary of one drain call. */
 export interface DrainResult {

@@ -12,12 +12,7 @@
 import { defineCommand } from 'citty';
 import { existsSync, readFileSync } from 'node:fs';
 import { ulid } from 'ulid';
-import {
-  buildAppContext,
-  routeInbound,
-  runAgentTurn,
-  type AppContext,
-} from '../../app/index.js';
+import { buildAppContext, routeInbound, runAgentTurn, type AppContext } from '../../app/index.js';
 import type { InboundMessage } from '../../channels/index.js';
 import { loadConfig } from '../../config/index.js';
 import { composePrompt, truncateHistory } from '../../prompts/index.js';

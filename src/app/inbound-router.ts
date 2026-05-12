@@ -52,11 +52,7 @@ export interface ResolvedInbound {
  *               the last message exceeds `autoResetAfterSeconds` (0 disables).
  * @returns A `ResolvedInbound` with `isDuplicate` / `isHandledCommand` flags.
  */
-export function routeInbound(
-  db: Db,
-  msg: InboundMessage,
-  idle?: IdleConfig,
-): ResolvedInbound {
+export function routeInbound(db: Db, msg: InboundMessage, idle?: IdleConfig): ResolvedInbound {
   // 1. Upsert chat.
   const chat = ChatsRepo.upsertChat(db, {
     provider: msg.channel,

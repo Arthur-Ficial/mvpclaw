@@ -9,12 +9,7 @@
  */
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { createInterface } from 'node:readline';
-import {
-  decodeFrame,
-  encodeFrame,
-  jsonRpcRequest,
-  type JsonRpcResponse,
-} from './jsonrpc.js';
+import { decodeFrame, encodeFrame, jsonRpcRequest, type JsonRpcResponse } from './jsonrpc.js';
 
 /** A tool discovered via `tools/list`. */
 export interface RemoteToolDescription {

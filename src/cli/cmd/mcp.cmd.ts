@@ -130,7 +130,11 @@ const serveCmd = defineCommand({
   meta: { name: 'serve', description: 'Run an internal MCP server on stdio.' },
   args: {
     ...commonArgs,
-    name: { type: 'positional', description: 'mvpclaw-tools | mvpclaw-conversations.', required: true },
+    name: {
+      type: 'positional',
+      description: 'mvpclaw-tools | mvpclaw-conversations.',
+      required: true,
+    },
   },
   async run({ args }) {
     const name = String(args.name);

@@ -229,7 +229,10 @@ async function* runClaudeCli(
     if (accumulated.length > 0) {
       yield { type: 'final', text: accumulated };
     } else if (exitCode !== 0) {
-      yield { type: 'error', error: errBuf.trim() || `claude exited with code ${String(exitCode)}` };
+      yield {
+        type: 'error',
+        error: errBuf.trim() || `claude exited with code ${String(exitCode)}`,
+      };
     }
   }
 }

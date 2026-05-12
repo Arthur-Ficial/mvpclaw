@@ -75,11 +75,7 @@ export async function runMcpServer(opts: McpServerOptions): Promise<void> {
   }
 }
 
-async function handle(
-  method: string,
-  params: unknown,
-  opts: McpServerOptions,
-): Promise<unknown> {
+async function handle(method: string, params: unknown, opts: McpServerOptions): Promise<unknown> {
   switch (method) {
     case 'initialize':
       return {

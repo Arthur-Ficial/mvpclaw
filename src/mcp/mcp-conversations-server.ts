@@ -8,13 +8,7 @@
 import { loadConfig } from '../config/index.js';
 import { applyMigrations, openDb, pathFromUrl } from '../db/index.js';
 import { runMcpServer, type McpServerTool } from './mcp-server.js';
-import {
-  ChatsRepo,
-  MessagesRepo,
-  RunsRepo,
-  SessionsRepo,
-  type Db,
-} from '../db/index.js';
+import { ChatsRepo, MessagesRepo, RunsRepo, SessionsRepo, type Db } from '../db/index.js';
 
 /**
  * Build the conversation-introspection tool list. Read-only: no mutation

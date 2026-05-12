@@ -27,7 +27,11 @@ export interface JsonRpcResponse {
 }
 
 /** Build a request object. */
-export function jsonRpcRequest(id: number | string, method: string, params?: unknown): JsonRpcRequest {
+export function jsonRpcRequest(
+  id: number | string,
+  method: string,
+  params?: unknown,
+): JsonRpcRequest {
   return params === undefined
     ? { jsonrpc: '2.0', id, method }
     : { jsonrpc: '2.0', id, method, params };
@@ -46,7 +50,9 @@ export function encodeFrame(obj: unknown): string {
  * @param line - One line of stdin.
  * @returns The parsed object, or `null` on parse error.
  */
-export function decodeFrame(line: string): JsonRpcRequest | JsonRpcResponse | JsonRpcNotification | null {
+export function decodeFrame(
+  line: string,
+): JsonRpcRequest | JsonRpcResponse | JsonRpcNotification | null {
   try {
     const parsed = JSON.parse(line) as Record<string, unknown>;
     if (parsed['jsonrpc'] !== '2.0') {

@@ -86,12 +86,7 @@ export function evaluateProactive(
  * @param now - Current epoch ms.
  * @param timezone - IANA tz used to compute the calendar day.
  */
-export function recordProactiveSend(
-  db: Db,
-  chat_id: string,
-  now: number,
-  timezone: string,
-): void {
+export function recordProactiveSend(db: Db, chat_id: string, now: number, timezone: string): void {
   const today = localDateString(now, timezone);
   const row = db
     .prepare('SELECT proactive_count_today, proactive_count_date FROM chats WHERE id = ?')

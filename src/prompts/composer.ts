@@ -96,7 +96,9 @@ export function composePrompt(input: ComposeInput): ComposeOutput {
   if (input.forcedSkillName) {
     const forced = enabledSkills.find((s) => s.name === input.forcedSkillName);
     if (forced && existsSync(forced.path)) {
-      sections.push(`## Skill forced: ${forced.name}\n\n${readFileSync(forced.path, 'utf8').trim()}`);
+      sections.push(
+        `## Skill forced: ${forced.name}\n\n${readFileSync(forced.path, 'utf8').trim()}`,
+      );
     }
   }
 
