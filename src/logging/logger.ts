@@ -9,8 +9,10 @@
  * strings through `redactString()` from `./redact`.
  *
  * @example
- *   const log = makeLogger(config);
- *   log.info({ chatId: 'c-1' }, 'inbound message received');
+ * ```ts
+ * const log = makeLogger(config);
+ * log.info({ chatId: 'c-1' }, 'inbound message received');
+ * ```
  */
 import pino, { type Logger } from 'pino';
 import type { LoggingConfig } from '../config/config.schema.js';
