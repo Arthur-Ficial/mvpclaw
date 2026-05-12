@@ -24,6 +24,8 @@
     "check": "pnpm typecheck && pnpm lint && pnpm format:check && pnpm build && pnpm test && pnpm test:e2e"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.95.2",
+    "@google/genai": "^2.1.0",
     "better-sqlite3": "^12.10.0",
     "citty": "^0.2.2",
     "grammy": "^1.42.0",

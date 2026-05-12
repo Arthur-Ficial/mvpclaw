@@ -32,7 +32,7 @@ import type { MvpClawConfigType } from '../config/index.js';
 import { applyMigrations, openDb, pathFromUrl } from '../db/index.js';
 import { makeLogger } from '../logging/index.js';
 import { loadSkillsFromDir, syncSkillsToWorkspace } from '../skills/index.js';
-import { createToolRegistry, registerBuiltinTools } from '../tools/index.js';
+import { createToolRegistry, registerBuiltinTools, registerExternalTools } from '../tools/index.js';
 import type { AppContext } from './app-context.js';
 
 /** The fully-wired context plus the cli-inject channel exposed for tests/CLI. */
@@ -107,10 +107,12 @@ export function buildAppContext(
     );
   }
 
-  // Tools: build the registry and register every built-in. Built-ins read
-  // the skill list lazily so a later reload would be picked up.
+  // Tools: build the registry and register both built-ins and the optional
+  // external tools (Anthropic, Gemini). External tools register as disabled
+  // when their key env vars are missing.
   const tools = createToolRegistry();
   registerBuiltinTools(tools, { config, getSkills: () => skills });
+  registerExternalTools(tools, config, env);
 
   const ctx: AppContext = {
     config,

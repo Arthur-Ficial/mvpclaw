@@ -11,3 +11,6 @@ export { createToolRegistry, filterBySource } from './tool-registry.js';
 export type { ToolRegistry } from './tool-registry.js';
 export { registerBuiltinTools } from './builtins.js';
 export type { BuiltinToolDeps } from './builtins.js';
+export { registerExternalTools } from './external-tools.js';
+export { createAnthropicWebSearchTool } from './anthropic-web-search.tool.js';
+export { createGeminiResearchTool } from './gemini-research.tool.js';

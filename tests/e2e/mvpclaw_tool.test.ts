@@ -47,13 +47,15 @@ describe('mvpclaw tool — end-to-end through compiled binary', () => {
     return { status: r.status, stdout: r.stdout, stderr: r.stderr };
   }
 
-  it('list returns the 5 built-in tools', () => {
+  it('list returns 5 built-in + 2 external (anthropic, gemini) tools', () => {
     const r = runCli(['tool', 'list', '--json']);
     expect(r.status, r.stderr).toBe(0);
-    const tools = JSON.parse(r.stdout) as Array<{ name: string; source: string }>;
+    const tools = JSON.parse(r.stdout) as Array<{ name: string; source: string; enabled: boolean }>;
     const names = tools.map((t) => t.name).sort();
     expect(names).toEqual(
       [
+        'anthropic_web_search',
+        'gemini_research',
         'mvpclaw_datetime',
         'mvpclaw_list_skills',
         'mvpclaw_read_recent_messages',
@@ -61,16 +63,56 @@ describe('mvpclaw tool — end-to-end through compiled binary', () => {
         'mvpclaw_status',
       ].sort(),
     );
-    for (const t of tools) {
-      expect(t.source).toBe('builtin');
+    // External tools are registered but disabled without keys.
+    const anthropic = tools.find((t) => t.name === 'anthropic_web_search');
+    const gemini = tools.find((t) => t.name === 'gemini_research');
+    expect(anthropic?.source).toBe('anthropic');
+    expect(gemini?.source).toBe('gemini');
+    // Without ANTHROPIC_API_KEY / GEMINI_API_KEY set, these are disabled.
+    if (!process.env['ANTHROPIC_API_KEY']) {
+      expect(anthropic?.enabled).toBe(false);
+    }
+    if (!process.env['GEMINI_API_KEY']) {
+      expect(gemini?.enabled).toBe(false);
     }
   });
 
-  it('list --source builtin matches list (all 5)', () => {
+  it('list --source builtin returns 5 tools', () => {
     const r = runCli(['tool', 'list', '--source', 'builtin', '--json']);
     expect(r.status).toBe(0);
     const tools = JSON.parse(r.stdout) as Array<{ name: string }>;
     expect(tools.length).toBe(5);
+  });
+
+  it('list --source anthropic returns the web-search tool', () => {
+    const r = runCli(['tool', 'list', '--source', 'anthropic', '--json']);
+    expect(r.status).toBe(0);
+    const tools = JSON.parse(r.stdout) as Array<{ name: string }>;
+    expect(tools.map((t) => t.name)).toEqual(['anthropic_web_search']);
+  });
+
+  it('list --source gemini returns the research tool', () => {
+    const r = runCli(['tool', 'list', '--source', 'gemini', '--json']);
+    expect(r.status).toBe(0);
+    const tools = JSON.parse(r.stdout) as Array<{ name: string }>;
+    expect(tools.map((t) => t.name)).toEqual(['gemini_research']);
+  });
+
+  it('calling anthropic_web_search when disabled returns exit 3 with a clear error', () => {
+    if (process.env['ANTHROPIC_API_KEY']) {
+      // Key is set — skip; real-provider behavior depends on rate limits.
+      return;
+    }
+    const r = runCli([
+      'tool',
+      'call',
+      'anthropic_web_search',
+      '--input',
+      '{"query":"x"}',
+      '--json',
+    ]);
+    expect(r.status).toBe(3);
+    expect(r.stderr).toContain('disabled');
   });
 
   it('list --source mcp returns empty (MCP lands in P8)', () => {
