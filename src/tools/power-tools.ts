@@ -372,7 +372,9 @@ function telegramPhotoTool(enabled: boolean): ToolHandler {
       const buf = await fs.readFile(p.path);
       const form = new FormData();
       form.append('chat_id', p.chatId);
-      if (p.caption) form.append('caption', p.caption);
+      if (p.caption) {
+        form.append('caption', p.caption);
+      }
       form.append('photo', new Blob([buf]), p.path.split('/').pop() ?? 'photo.png');
       const res = await fetch(`https://api.telegram.org/bot${token}/sendPhoto`, {
         method: 'POST',

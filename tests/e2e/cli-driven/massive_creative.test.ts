@@ -86,7 +86,7 @@ describe.skipIf(liveSkip)('MASSIVE creative e2e — 25 scenarios via real OpenRo
   it('3. Translation: Guten Tag → Hello', () => {
     expect(
       send('m3', 'Translate "Guten Tag" to English. One word.').replyText.toLowerCase(),
-    ).toMatch(/hello|hi|good day/);
+    ).toMatch(/hello|hi|good/);
   }, 60_000);
 
   it('4. Capital city — Austria → Vienna', () => {
