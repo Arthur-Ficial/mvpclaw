@@ -31,3 +31,5 @@ export type {
 } from './openrouter.client.js';
 export { createOpenRouterProvider } from './openrouter.provider.js';
 export type { OpenRouterProviderOptions } from './openrouter.provider.js';
+export { createClaudeCliProvider, parseClaudeStreamLine } from './claude-cli.provider.js';
+export type { ClaudeCliProviderOptions } from './claude-cli.provider.js';

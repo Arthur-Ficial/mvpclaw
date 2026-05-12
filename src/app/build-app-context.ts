@@ -17,6 +17,7 @@
  */
 import { resolve } from 'node:path';
 import {
+  createClaudeCliProvider,
   createOpenRouterProvider,
   type AgentProviderAdapter,
   type LoadedSkill,
@@ -81,7 +82,10 @@ export function buildAppContext(
     channels['telegram'] = telegram;
   }
 
-  // Providers: wire openrouter when key present. P5 wires claude-cli.
+  // Providers: wire openrouter when key present; always wire claude-cli (its
+  // binary presence is a runtime check, not a config-time one — `mvpclaw doctor`
+  // surfaces the absence). Env vars containing `${OPENROUTER_API_KEY}` are
+  // substituted from the live env before spawn.
   const providers: Record<string, AgentProviderAdapter> = {};
   const orKey = env[config.openrouter.apiKeyEnv];
   if (config.openrouter.enabled && typeof orKey === 'string' && orKey.length > 0) {
@@ -92,6 +96,17 @@ export function buildAppContext(
       title: 'mvpclaw',
     });
   }
+  const claudeEnv: Record<string, string> = {};
+  for (const [k, v] of Object.entries(config.claudeCli.env)) {
+    claudeEnv[k] = v.replace(/\$\{([A-Z0-9_]+)\}/g, (_, name: string) => env[name] ?? '');
+  }
+  providers['claude-cli'] = createClaudeCliProvider({
+    command: config.claudeCli.command,
+    outputFormat: 'stream-json',
+    extraArgs: config.claudeCli.allowedTools.flatMap((t) => ['--allowedTools', t]),
+    env: claudeEnv,
+    timeoutMs: config.agent.timeoutMs,
+  });
 
   const tracesDir = resolve(process.cwd(), config.app.dataDir, 'traces');
 
