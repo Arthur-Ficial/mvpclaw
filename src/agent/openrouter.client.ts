@@ -13,10 +13,33 @@
  * change here is validated against the real API surface, not a mock.
  */
 
+/** A function-tool call returned by the model. */
+export interface OpenRouterToolCall {
+  id: string;
+  type: 'function';
+  function: { name: string; arguments: string };
+}
+
 /** A single message in the OpenRouter chat-completions payload. */
 export interface OpenRouterMessage {
-  role: 'system' | 'user' | 'assistant';
-  content: string;
+  role: 'system' | 'user' | 'assistant' | 'tool';
+  content: string | null;
+  /** Present on assistant messages that call tools. */
+  tool_calls?: OpenRouterToolCall[];
+  /** Present on `role: 'tool'` messages — references the call id. */
+  tool_call_id?: string;
+  /** Optional name (`role: 'tool'`). */
+  name?: string;
+}
+
+/** Tool definition surfaced to OpenRouter. */
+export interface OpenRouterToolDefinition {
+  type: 'function';
+  function: {
+    name: string;
+    description: string;
+    parameters: Record<string, unknown>;
+  };
 }
 
 /** Chat-completions request body (subset of the OpenAI-compatible schema). */
@@ -25,6 +48,12 @@ export interface ChatCompletionsRequest {
   messages: OpenRouterMessage[];
   temperature?: number;
   max_tokens?: number;
+  /** Function tools the model may call. */
+  tools?: OpenRouterToolDefinition[];
+  /** Forced or auto tool choice. */
+  tool_choice?: 'auto' | 'none' | { type: 'function'; function: { name: string } };
+  /** Stream Server-Sent Events. */
+  stream?: boolean;
 }
 
 /** Chat-completions response body (subset). */
@@ -35,6 +64,31 @@ export interface ChatCompletionsResponse {
     index: number;
     message: OpenRouterMessage;
     finish_reason: string;
+  }>;
+  usage?: {
+    prompt_tokens: number;
+    completion_tokens: number;
+    total_tokens: number;
+  };
+}
+
+/** One streaming SSE chunk (OpenAI-compatible delta shape). */
+export interface ChatCompletionsChunk {
+  id: string;
+  model: string;
+  choices: Array<{
+    index: number;
+    delta: {
+      role?: string;
+      content?: string;
+      tool_calls?: Array<{
+        index: number;
+        id?: string;
+        type?: 'function';
+        function?: { name?: string; arguments?: string };
+      }>;
+    };
+    finish_reason: string | null;
   }>;
   usage?: {
     prompt_tokens: number;
@@ -134,5 +188,71 @@ export class OpenRouterClient {
     }
     // Unreachable — the loop either returns or throws.
     throw new Error(`OpenRouter chatCompletions exhausted retries: ${lastBody}`);
+  }
+
+  /**
+   * Stream `/chat/completions` as Server-Sent Events. Yields one
+   * `ChatCompletionsChunk` per parsed `data:` line. The terminal
+   * `data: [DONE]` line ends the iterator. No retry — streaming callers
+   * see partial output, so reconnects belong upstream.
+   *
+   * @param req - The chat-completions request body (caller sets `stream:true`).
+   * @returns An async iterator over decoded chunks.
+   */
+  async *chatCompletionsStream(req: ChatCompletionsRequest): AsyncIterable<ChatCompletionsChunk> {
+    const fetchImpl = this.opts.fetchImpl ?? globalThis.fetch;
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${this.opts.apiKey}`,
+      'Content-Type': 'application/json',
+      Accept: 'text/event-stream',
+    };
+    if (this.opts.referer !== undefined) {
+      headers['HTTP-Referer'] = this.opts.referer;
+    }
+    if (this.opts.title !== undefined) {
+      headers['X-Title'] = this.opts.title;
+    }
+    const res = await fetchImpl(`${this.opts.baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ ...req, stream: true }),
+    });
+    if (!res.ok) {
+      const body = await res.text().catch(() => '');
+      throw new Error(`OpenRouter stream ${res.status}: ${body || res.statusText}`);
+    }
+    if (!res.body) {
+      throw new Error('OpenRouter stream: response body is null');
+    }
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder('utf-8');
+    let buffer = '';
+    let done = false;
+    while (!done) {
+      const { value, done: streamDone } = await reader.read();
+      done = streamDone;
+      if (value) {
+        buffer += decoder.decode(value, { stream: true });
+      }
+      let nl = buffer.indexOf('\n');
+      while (nl !== -1) {
+        const line = buffer.slice(0, nl).trimEnd();
+        buffer = buffer.slice(nl + 1);
+        nl = buffer.indexOf('\n');
+        if (!line.startsWith('data:')) {
+          continue;
+        }
+        const payload = line.slice('data:'.length).trim();
+        if (payload === '[DONE]') {
+          return;
+        }
+        try {
+          yield JSON.parse(payload) as ChatCompletionsChunk;
+        } catch {
+          // Tolerate keep-alives and partial frames; SSE frames may split.
+          continue;
+        }
+      }
+    }
   }
 }

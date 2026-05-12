@@ -82,6 +82,9 @@ export function buildAppContext(
     channels['telegram'] = telegram;
   }
 
+  // Tool registry up front so providers can borrow the bridge below.
+  const tools = createToolRegistry();
+
   // Providers: wire openrouter when key present; always wire claude-cli (its
   // binary presence is a runtime check, not a config-time one — `mvpclaw doctor`
   // surfaces the absence). Env vars containing `${OPENROUTER_API_KEY}` are
@@ -94,6 +97,15 @@ export function buildAppContext(
       baseUrl: config.openrouter.baseUrl,
       model: config.openrouter.defaultModel,
       title: 'mvpclaw',
+      maxToolRounds: config.agent.maxToolRounds,
+      tools: {
+        list: () => tools.list(),
+        context: (input) => ({
+          db,
+          ...(input.sessionId ? { runId: input.runId } : {}),
+        }),
+      },
+      serverTools: config.openrouter.enableServerTools ? config.openrouter.serverTools : [],
     });
   }
   const claudeEnv: Record<string, string> = {};
@@ -128,10 +140,10 @@ export function buildAppContext(
     );
   }
 
-  // Tools: build the registry and register both built-ins and the optional
-  // external tools (Anthropic, Gemini). External tools register as disabled
-  // when their key env vars are missing.
-  const tools = createToolRegistry();
+  // Tools: register both built-ins and the optional external tools
+  // (Anthropic, Gemini). External tools register as disabled when their
+  // key env vars are missing. Registry itself was created earlier so the
+  // OpenRouter provider can hold a live reference to it.
   registerBuiltinTools(tools, { config, getSkills: () => skills });
   registerExternalTools(tools, config, env);
   registerSchedulerTools(tools);
