@@ -17,16 +17,15 @@ const MIGRATIONS = resolve(__dirname, '../../migrations');
  *
  *   cli-inject channel  →  router  →  orchestrator
  *                                      ↓
- *                               OpenRouter (REAL, free model)
+ *                               OpenRouter (REAL, openai/gpt-4o-mini)
  *                                      ↓
  *                                   outbox
  *                                      ↓
  *                               channel.send()
  *
  * Per project policy: NO FAKE PROVIDERS. This test hits the real
- * OpenRouter API using the free model (`meta-llama/llama-3.2-3b-instruct:free`).
- * The test is gated by the `OPENROUTER_API_KEY` env var — if absent the
- * test is skipped so the CI doesn't fail in environments without a key.
+ * OpenRouter API using `openai/gpt-4o-mini` (~$0.0001/call). Gated by
+ * `OPENROUTER_API_KEY`; absent → skip so a clean CI passes too.
  *
  * `--nocache` is the canonical run; we exercise the real provider every time.
  */
@@ -34,15 +33,16 @@ const MIGRATIONS = resolve(__dirname, '../../migrations');
 const key = process.env['OPENROUTER_API_KEY'];
 const skip = !key || key.length < 20;
 
-describe.skipIf(skip)('orchestrator end-to-end (real OpenRouter, free model)', () => {
+describe.skipIf(skip)('orchestrator end-to-end (real OpenRouter, openai/gpt-4o-mini)', () => {
   let tmp: string;
   let ctx: AppContext;
 
   beforeEach(() => {
     tmp = mkdtempSync(join(tmpdir(), 'mvpclaw-e2e-'));
-    // Use the cheap-but-reliable `openai/gpt-4o-mini` (~$0.0001/call) so
-    // tests aren't flaky. The default config's free model is fine for the
-    // end-user but rate-limited upstream too aggressively for CI.
+    // `openai/gpt-4o-mini` is the project default (~$0.0001/call). The
+    // earlier free-tier model `meta-llama/llama-3.2-3b-instruct:free`
+    // routes to providers that do not support tool calls, which broke
+    // the orchestrator path the moment 11 built-in tools were attached.
     const config = MvpClawConfig.parse({
       app: { dataDir: tmp, workspaceDir: join(tmp, 'workspace') },
       database: { url: `file:${join(tmp, 'db.sqlite')}` },

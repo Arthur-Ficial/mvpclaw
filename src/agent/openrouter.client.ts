@@ -9,8 +9,8 @@
  * OpenRouter endpoints without changing the architecture.
  *
  * Per the project policy: NO FAKE PROVIDERS. Tests hit real OpenRouter
- * using the free model (`meta-llama/llama-3.2-3b-instruct:free`) so any
- * change here is validated against the real API surface, not a mock.
+ * using `openai/gpt-4o-mini` (~$0.0001/call) so any change here is
+ * validated against the real API surface, not a mock.
  */
 
 /** A function-tool call returned by the model. */
