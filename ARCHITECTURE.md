@@ -153,7 +153,7 @@ mvpclaw/
 │   │       └── status.cmd.ts       # provider / DB / MCP reachability
 │   ├── channels/
 │   │   ├── channel.ts              # ChannelAdapter interface, InboundMessage, OutboundMessage
-│   │   ├── telegram.channel.ts     # grammY-backed Telegram adapter (was src/telegram/)
+│   │   ├── telegram.channel.ts     # grammY-backed Telegram adapter
 │   │   └── cli-inject.channel.ts   # synthetic channel used by `mvpclaw send`
 │   ├── config/
 │   │   ├── config.schema.ts
