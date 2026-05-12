@@ -151,6 +151,13 @@ describe.skipIf(skip)('mvpclaw chat + agent — end-to-end through compiled bina
       'Reply with just the word OK and nothing else.',
       '--json',
     ]);
+    const isBillingCapped = r.status === 3 && /Key limit exceeded|40[39]/.test(r.stderr + r.stdout);
+    if (isBillingCapped) {
+      const result = JSON.parse(r.stdout) as { status: string; error?: string };
+      expect(result.status).toBe('failed');
+      expect(result.error ?? '').toMatch(/Key limit|40[39]/);
+      return;
+    }
     expect(r.status, r.stderr).toBe(0);
     const result = JSON.parse(r.stdout) as { status: string; replyText: string; runId: string };
     expect(result.status).toBe('succeeded');

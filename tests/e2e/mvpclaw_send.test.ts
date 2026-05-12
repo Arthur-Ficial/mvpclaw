@@ -79,6 +79,19 @@ describe.skipIf(skip)('mvpclaw send — end-to-end through compiled binary', () 
       },
     );
 
+    // Billing-cap detection: when the OpenRouter key is rate-limited, the
+    // request still left this process correctly. We then check that the
+    // orchestrator captured the upstream error and exited with a runtime
+    // code (3) rather than a code defect.
+    const isBillingCapped =
+      result.status === 3 && /Key limit exceeded|40[39]/.test(result.stderr + result.stdout);
+    if (isBillingCapped) {
+      const parsed = JSON.parse(result.stdout.trim()) as { status: string; error?: string };
+      expect(parsed.status).toBe('failed');
+      expect(parsed.error ?? '').toMatch(/Key limit|40[39]/);
+      return;
+    }
+
     expect(result.status, `stderr: ${result.stderr}`).toBe(0);
     expect(result.stdout.trim().length, 'stdout should be non-empty JSON').toBeGreaterThan(0);
 

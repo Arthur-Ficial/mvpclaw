@@ -112,7 +112,6 @@ const tailCmd = defineCommand({
         writeJsonLine(rowSummary(row));
       }
       let lastId = seed[0]?.id ?? '';
-      // eslint-disable-next-line no-constant-condition
       while (true) {
         await new Promise((r) => setTimeout(r, 250));
         const fresh = OutboxRepo.listOutbox(built.ctx.db, {

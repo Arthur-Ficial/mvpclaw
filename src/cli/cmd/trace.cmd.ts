@@ -140,7 +140,6 @@ const tailCmd = defineCommand({
       return;
     }
     let seenLines = new Set(seed.map((s) => s.line));
-    // eslint-disable-next-line no-constant-condition
     while (true) {
       await new Promise((r) => setTimeout(r, 500));
       const all = readAllEvents();
