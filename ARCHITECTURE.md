@@ -10,11 +10,68 @@ Normative language follows RFC 2119 / BCP 14: **MUST**, **SHALL**, **SHOULD**, *
 
 ## 1. Overview
 
-MVPClaw is a **minimal, single-agent, local-first chat-to-agent bridge**. One Node.js TypeScript process connects Telegram to one AI agent, persists state in SQLite, supports both Claude CLI (default, via OpenRouter env injection) and direct OpenRouter API, exposes and consumes MCP tools, loads AgentSkills-compatible skills, and is testable with Vitest from day one.
+MVPClaw is a **minimal, single-agent, local-first agent bridge with a CLI-first surface**. One Node.js TypeScript process connects chat channels (Telegram first; Discord/Slack/voice are future channel adapters) to one AI agent, persists state in SQLite, supports both Claude CLI (default, via OpenRouter env injection) and direct OpenRouter API, exposes and consumes MCP tools, loads AgentSkills-compatible skills, and is testable with Vitest from day one.
+
+**The CLI is the primary interface.** Telegram is one channel adapter among N. Every agent capability (receive a message, run a tool, schedule a task, read memory, replay a run) is reachable via a Unix-style CLI command. An AI agent or human can drive, test, and observe the whole system without touching Telegram.
 
 **Golden goal:** A template for a zero-install, Claude-Code-installable, working, minimal-TDD, ultra-understandable TypeScript source, 100% linted, end-to-end claw product.
 
-Every architectural decision here serves that goal. No microservices. No queue broker. No web frontend. No multi-agent framework. No containers required (Docker is optional). No wizard. One config file. One process. One agent.
+Every architectural decision here serves that goal. No microservices. No queue broker. No web frontend. No multi-agent framework. No containers required (Docker is optional). No wizard. No auto-generated docs site — the source code is the documentation, enforced by lint rules and `CLAUDE.md`. One config file. One process. One agent.
+
+## 1bis. CLI-first / AI-steerable
+
+### Killer command
+
+```bash
+mvpclaw send --channel telegram --chat-id 12345 --user-id 67890 \
+             --text "is this a real message?"
+```
+
+This injects a synthetic `InboundMessage` through the channel-adapter layer and runs it through the exact same router → orchestrator → provider → outbox path a real Telegram update would follow. Same trace, same SQLite rows, same outbox behavior. With `--json`, output is structured `{runId, channel, chatId, userId, replyText?, tracePath, durationMs}`. With `--wait N`, the command blocks up to N seconds for the reply.
+
+### Unix-style conventions (mandatory)
+
+- One command, one job; compose via pipes.
+- `--json` flag everywhere; default human output when `process.stdout.isTTY`.
+- Exit codes: `0` success · `1` usage · `2` config · `3` runtime · `4` not found · `5` timeout.
+- stdin accepts JSON where it makes sense (`mvpclaw send --json < input.json`).
+- stdout = data, stderr = logs/progress. They never mix.
+- `--quiet` suppresses non-error output; `--verbose` adds structured progress to stderr.
+- No interactive prompts in any command.
+
+### Sub-command surface
+
+```
+mvpclaw send       outbox    chat      agent     tool      task
+        memory     skill     mcp       db        trace     config
+        doctor     status    replay
+```
+
+Each top-level command lives in `src/cli/cmd/<name>.ts` and is dispatched by `src/cli/main.ts` via citty. Help text is generated from each command's `meta.description` block; CI fails if a command's help is empty.
+
+### Channel-adapter abstraction
+
+Channels are pluggable via the `ChannelAdapter` interface in `src/channels/channel.ts`:
+
+```ts
+export interface ChannelAdapter {
+  readonly name: string;                     // "telegram" | "cli-inject" | "discord" | ...
+  receive(): AsyncIterable<InboundMessage>;  // long-poll / webhook / synthetic input
+  send(msg: OutboundMessage): Promise<void>; // for real channels; no-op for cli-inject
+}
+```
+
+Implementations today: `telegramChannel` (grammY-backed) and `cliInjectChannel` (used by `mvpclaw send`). The router, orchestrator, and outbox import only `src/channels/`; no `grammy` import leaks past the adapter boundary.
+
+### Source-as-documentation
+
+There is no docs portal. The codebase documents itself:
+
+- TSDoc/JSDoc required on every exported symbol (`@public`, `@param`, `@returns`, `@example`). `eslint-plugin-jsdoc` + `eslint-plugin-tsdoc` block merges without this.
+- Each `src/<area>/` folder has an `index.ts` with a top-of-file JSDoc block that is the area's overview (1–3 scannable sentences).
+- File and function names predict their contents.
+- Every CLI sub-command's `meta.description` is the user-facing doc.
+- `pnpm check` fails on undocumented public exports.
 
 ---
 
@@ -76,8 +133,28 @@ mvpclaw/
 ├── src/
 │   ├── index.ts
 │   ├── cli/
-│   │   ├── main.ts
-│   │   └── commands.ts
+│   │   ├── main.ts                 # citty entrypoint; dispatches to cmd/*
+│   │   ├── output.ts               # stdout JSON / table writer; TTY detection
+│   │   ├── exit.ts                 # exitUsage / exitConfig / exitRuntime / exitNotFound / exitTimeout
+│   │   └── cmd/
+│   │       ├── send.cmd.ts         # mvpclaw send (the killer command)
+│   │       ├── outbox.cmd.ts       # list/tail/peek/flush/cancel
+│   │       ├── chat.cmd.ts         # list/show/new/reset
+│   │       ├── agent.cmd.ts        # run/replay/dry-run
+│   │       ├── tool.cmd.ts         # list/describe/call
+│   │       ├── task.cmd.ts         # schedule/list/show/cancel/pause/resume/run-now
+│   │       ├── memory.cmd.ts       # show/append/edit/clear/archive/grep
+│   │       ├── skill.cmd.ts        # list/show/validate/sync/invoke
+│   │       ├── mcp.cmd.ts          # list/inspect/test
+│   │       ├── db.cmd.ts           # query/migrate/vacuum/dump
+│   │       ├── trace.cmd.ts        # list/show/tail/filter
+│   │       ├── config.cmd.ts       # get/set/validate/diff
+│   │       ├── doctor.cmd.ts       # health check
+│   │       └── status.cmd.ts       # provider / DB / MCP reachability
+│   ├── channels/
+│   │   ├── channel.ts              # ChannelAdapter interface, InboundMessage, OutboundMessage
+│   │   ├── telegram.channel.ts     # grammY-backed Telegram adapter (was src/telegram/)
+│   │   └── cli-inject.channel.ts   # synthetic channel used by `mvpclaw send`
 │   ├── config/
 │   │   ├── config.schema.ts
 │   │   └── load-config.ts
@@ -98,11 +175,6 @@ mvpclaw/
 │   │       ├── skills.repo.ts
 │   │       ├── tasks.repo.ts
 │   │       └── chat-memory.repo.ts
-│   ├── telegram/
-│   │   ├── telegram.adapter.ts
-│   │   ├── telegram.format.ts
-│   │   ├── telegram.commands.ts
-│   │   └── telegram.types.ts
 │   ├── app/
 │   │   ├── app-context.ts
 │   │   ├── inbound-router.ts

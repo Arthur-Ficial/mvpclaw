@@ -1,12 +1,66 @@
 # CLAUDE.md — MVPClaw Project Bootstrap
 
-You are operating inside a clone of **MVPClaw**, a single-process Node.js/TypeScript Telegram-to-AI-agent bridge that ships as a template repository.
+You are operating inside a clone of **MVPClaw**, a single-process Node.js/TypeScript bridge between AI agents and chat channels. Telegram is the first channel; the CLI is the primary, first-class interface.
 
 ## Golden goal
 
 A template for a zero-install, Claude-Code-installable, working, minimal-TDD, ultra-understandable TypeScript source, 100% linted, end-to-end claw product.
 
 Every decision here serves that goal. If a proposed change pulls away from "a junior dev can read this and understand it in 30 minutes," reject the change.
+
+## CLI-first / AI-steerable (non-negotiable)
+
+MVPClaw's primary interface is its CLI, not Telegram. Telegram is one channel adapter among N (future: Discord, Slack, WhatsApp, voice). Every agent capability — receiving a "message", invoking a tool, scheduling a task, reading memory, replaying a run — is available as a Unix-style CLI command. An AI agent (or a human) can drive, test, and observe the entire system without touching Telegram.
+
+### The killer command
+
+```bash
+mvpclaw send --channel telegram --chat-id 12345 --user-id 67890 \
+             --text "is this a real message?"
+```
+
+This injects a synthetic `InboundMessage` and runs it through the exact same router → orchestrator → provider → outbox path a real Telegram update would follow. Output (reply text, trace path, run id) goes to stdout; pass `--json` for structured output.
+
+### Unix-style conventions (mandatory)
+
+- One command does one thing; compose via pipes.
+- `--json` flag universally; default human output for terminals (auto-detect TTY).
+- Exit codes: `0` success, `1` usage error, `2` config error, `3` runtime error, `4` not found, `5` timeout.
+- stdin accepts JSON input where it makes sense (e.g. `mvpclaw send --json < input.json`).
+- stdout = data, stderr = logs/progress. Never mix them.
+- `--quiet` suppresses non-error output; `--verbose` adds structured progress to stderr.
+- No interactive prompts in any command. Required input that's missing → exit 1 with a clear stderr message.
+- Help text (`mvpclaw <cmd> --help`) is the contract; CI fails if a command's help is empty or out of sync with its code.
+
+### Source code IS the documentation
+
+No separate generated docs site, no TypeDoc HTML output, no docs portal. The codebase documents itself, enforced by:
+
+- TSDoc/JSDoc on every exported symbol (`@public`, `@param`, `@returns`, `@example`). Lint blocks merges without these.
+- File and function naming: a file's name predicts its contents; a function's name predicts its behavior.
+- Each `src/<area>/` folder has an `index.ts` whose top-of-file JSDoc block is the area overview (1–3 sentences, scannable in seconds).
+- Every CLI sub-command's `meta.description` is a one-line behavioral summary; help text generated from `meta` is the user-facing doc.
+- `pnpm check` fails on missing docstrings on public symbols.
+
+### The complete CLI surface (sub-commands)
+
+```
+mvpclaw send        # inject a message via any channel
+mvpclaw outbox      # list / tail / peek / flush / cancel outgoing messages
+mvpclaw chat        # list / show / new / reset chats
+mvpclaw agent       # run / replay / dry-run an agent turn directly
+mvpclaw tool        # list / describe / call any registered tool
+mvpclaw task        # schedule / list / show / cancel / pause / resume / run-now
+mvpclaw memory      # show / append / edit / clear / archive / grep (runtime + chat scopes)
+mvpclaw skill       # list / show / validate / sync / invoke
+mvpclaw mcp         # list / inspect / test MCP servers (internal + external)
+mvpclaw db          # query (read-only) / migrate / vacuum / dump
+mvpclaw trace       # list / show / tail / filter run traces
+mvpclaw config      # get / set / validate / diff
+mvpclaw doctor      # health check
+mvpclaw status      # current configured provider, DB stats, MCP reachability
+mvpclaw replay      # alias → agent replay
+```
 
 ## Your first task
 
@@ -24,10 +78,12 @@ test -f .mvpclaw-install.json && echo INSTALLED || echo FRESH
 - Node.js 24 LTS, TypeScript strict
 - Vitest (unit + integration + e2e)
 - SQLite via `better-sqlite3` / `node:sqlite` + Drizzle
-- grammY (Telegram), Pino + redaction, Zod (config)
+- grammY (Telegram channel adapter), Pino + redaction, Zod (config)
+- citty (CLI framework — TypeScript-native, JSON-friendly)
 - croner (cron parser only — in-process drift-corrected tick owns timing)
 - `@modelcontextprotocol/sdk`, `@anthropic-ai/sdk`, `@google/genai`
 - pnpm; Docker optional
+- Lint: ESLint + `eslint-plugin-jsdoc` + `eslint-plugin-tsdoc` (enforces source-as-docs)
 
 ## Code quality rules (apply always)
 
@@ -42,12 +98,13 @@ test -f .mvpclaw-install.json && echo INSTALLED || echo FRESH
 
 ## Architecture rules
 
-- Keep Telegram code inside `src/telegram`.
-- Keep provider code inside `src/agent`.
-- Keep MCP code inside `src/mcp`.
-- Keep skills code inside `src/skills`.
-- Keep scheduler code inside `src/scheduler`.
-- Business logic SHALL NOT import Telegram-specific types.
+- Keep channel adapter code (Telegram and CLI-injection today) inside `src/channels/`. Each channel implements the `ChannelAdapter` interface from `src/channels/channel.ts`.
+- Keep CLI sub-command code inside `src/cli/cmd/<name>.ts`. One file per top-level command. Single entrypoint at `src/cli/main.ts`.
+- Keep provider code inside `src/agent/`.
+- Keep MCP code inside `src/mcp/`.
+- Keep skills code inside `src/skills/`.
+- Keep scheduler code inside `src/scheduler/`.
+- Business logic (router, orchestrator, outbox) SHALL NOT import channel-specific types. No `grammy` import outside `src/channels/telegram.channel.ts`.
 - Use `mvpclaw.config.json` as the only configuration source.
 - Do not add Redis, queues, web UI, workers, or multi-agent abstractions.
 
