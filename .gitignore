@@ -1,0 +1,31 @@
+# Secrets — never commit
+.env
+.env.local
+.env.*.local
+
+# Runtime artifacts
+data/
+workspace/
+~/.mvpclaw/
+
+# Build
+dist/
+node_modules/
+*.tsbuildinfo
+
+# Lockdown mode artifact (regenerated on demand)
+install-commands.sh
+
+# Local dev preferences (per-developer)
+CLAUDE.local.md
+
+# Editor / OS noise
+.DS_Store
+.idea/
+.vscode/
+
+# IMPORTANT — these ARE committed (do not add):
+# .mvpclaw-install.json   (committed; documents install state)
+# mvpclaw.config.json     (committed; structure only, no secrets)
+# briefing/               (stays local; not in the repo per maintainer decision)
+briefing/
