@@ -6,3 +6,4 @@
  * are imported from CLI, tests, scripts, and library code alike.
  */
 export { loadEnvFile } from './env-loader.js';
+export { nowIso } from './time.js';

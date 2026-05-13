@@ -10,6 +10,7 @@
  * rest of the schema.
  */
 import { ulid } from 'ulid';
+import { nowIso } from '../../lib/index.js';
 import type { Db } from '../db.js';
 import type { ToolSource } from '../../tools/tool.js';
 
@@ -43,7 +44,7 @@ export interface ToolCallStartInput {
  */
 export function insertToolCallStart(db: Db, input: ToolCallStartInput): string {
   const id = ulid();
-  const now = new Date().toISOString();
+  const now = nowIso();
   db.prepare(
     `INSERT INTO tool_calls (id, run_id, tool_name, source, input_json, started_at)
      VALUES (?, ?, ?, ?, ?, ?)`,
@@ -65,7 +66,7 @@ export interface ToolCallEndInput {
  * @param input - Result JSON and/or error text.
  */
 export function markToolCallEnd(db: Db, id: string, input: ToolCallEndInput): void {
-  const now = new Date().toISOString();
+  const now = nowIso();
   db.prepare(`UPDATE tool_calls SET result_json = ?, error = ?, finished_at = ? WHERE id = ?`).run(
     input.result_json,
     input.error,

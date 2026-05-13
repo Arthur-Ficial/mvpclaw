@@ -6,10 +6,8 @@
  * in the output — only presence (`Yes` / `No`).
  */
 import { defineCommand } from 'citty';
-import { buildAppContext } from '../../app/index.js';
-import { loadConfig } from '../../config/index.js';
-import { exitConfig } from '../exit.js';
 import { resolveOutputContext, writeOut } from '../output.js';
+import { withAppContext } from '../with-context.js';
 import { commonArgs } from './_common.js';
 
 export const statusCmd = defineCommand({
@@ -18,37 +16,11 @@ export const statusCmd = defineCommand({
     description: 'Show configured provider, DB stats, channels, and key presence.',
   },
   args: { ...commonArgs },
-  run({ args }) {
+  async run({ args }) {
     const ctx = resolveOutputContext(args);
-    let config;
-    try {
-      config = loadConfig(typeof args.config === 'string' ? args.config : undefined);
-    } catch (err) {
-      exitConfig(err instanceof Error ? err.message : String(err));
-    }
-    const built = buildAppContext(config);
-    try {
-      const counts = {
-        chats: (built.ctx.db.prepare('SELECT COUNT(*) AS c FROM chats').get() as { c: number }).c,
-        messages: (
-          built.ctx.db.prepare('SELECT COUNT(*) AS c FROM messages').get() as { c: number }
-        ).c,
-        agent_runs: (
-          built.ctx.db.prepare('SELECT COUNT(*) AS c FROM agent_runs').get() as {
-            c: number;
-          }
-        ).c,
-        outbox_pending: (
-          built.ctx.db.prepare("SELECT COUNT(*) AS c FROM outbox WHERE status='pending'").get() as {
-            c: number;
-          }
-        ).c,
-        outbox_sent: (
-          built.ctx.db.prepare("SELECT COUNT(*) AS c FROM outbox WHERE status='sent'").get() as {
-            c: number;
-          }
-        ).c,
-      };
+    await withAppContext(args, (built) => {
+      const config = built.ctx.config;
+      const count = (sql: string): number => (built.ctx.db.prepare(sql).get() as { c: number }).c;
       writeOut(
         {
           provider: config.agent.provider,
@@ -59,12 +31,16 @@ export const statusCmd = defineCommand({
           providers: Object.keys(built.ctx.providers),
           telegramConfigured: process.env[config.telegram.tokenEnv] ? 'Yes' : 'No',
           openrouterConfigured: process.env[config.openrouter.apiKeyEnv] ? 'Yes' : 'No',
-          counts,
+          counts: {
+            chats: count('SELECT COUNT(*) AS c FROM chats'),
+            messages: count('SELECT COUNT(*) AS c FROM messages'),
+            agent_runs: count('SELECT COUNT(*) AS c FROM agent_runs'),
+            outbox_pending: count("SELECT COUNT(*) AS c FROM outbox WHERE status='pending'"),
+            outbox_sent: count("SELECT COUNT(*) AS c FROM outbox WHERE status='sent'"),
+          },
         },
         ctx,
       );
-    } finally {
-      built.ctx.db.close();
-    }
+    });
   },
 });
