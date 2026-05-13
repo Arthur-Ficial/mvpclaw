@@ -25,6 +25,8 @@ import {
   markRunSucceeded,
 } from '../db/repos/runs.repo.js';
 import { insertMessage } from '../db/repos/messages.repo.js';
+import { insertToolCallStart, markToolCallEnd } from '../db/repos/tool-calls.repo.js';
+import type { ToolSource } from '../tools/tool.js';
 import type { AppContext } from './app-context.js';
 import { composePrompt, truncateHistory } from '../prompts/index.js';
 import type { ResolvedInbound } from './inbound-router.js';
@@ -127,6 +129,13 @@ export async function runAgentTurn(
 
   let finalText = '';
   let providerError: string | null = null;
+  // Map provider-emitted `callId` → our tool_calls row id, so a later
+  // tool_result event can update the right row.
+  const callIdToRowId = new Map<string, string>();
+  const toolSource = (name: string): ToolSource => {
+    const def = ctx.tools.describe().find((d) => d.name === name);
+    return def?.source ?? 'builtin';
+  };
   try {
     for await (const event of provider.run({
       runId: run.id,
@@ -145,6 +154,22 @@ export async function runAgentTurn(
         finalText += event.text;
       } else if (event.type === 'final') {
         finalText = event.text;
+      } else if (event.type === 'tool_call') {
+        const rowId = insertToolCallStart(ctx.db, {
+          run_id: run.id,
+          tool_name: event.name,
+          source: toolSource(event.name),
+          input_json: JSON.stringify(event.input ?? {}),
+        });
+        callIdToRowId.set(event.callId, rowId);
+      } else if (event.type === 'tool_result') {
+        const rowId = callIdToRowId.get(event.callId);
+        if (rowId !== undefined) {
+          markToolCallEnd(ctx.db, rowId, {
+            result_json: JSON.stringify(event.result ?? null),
+            error: null,
+          });
+        }
       } else if (event.type === 'error') {
         providerError = event.error;
         break;

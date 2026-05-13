@@ -327,10 +327,11 @@ function geminiImageTool(enabled: boolean): ToolHandler {
       let edited = false;
       if (typeof p.inputImagePath === 'string' && p.inputImagePath.length > 0) {
         const buf = await fs.readFile(p.inputImagePath);
-        const mime = p.inputImagePath.toLowerCase().endsWith('.jpg') ||
-                     p.inputImagePath.toLowerCase().endsWith('.jpeg')
-          ? 'image/jpeg'
-          : 'image/png';
+        const mime =
+          p.inputImagePath.toLowerCase().endsWith('.jpg') ||
+          p.inputImagePath.toLowerCase().endsWith('.jpeg')
+            ? 'image/jpeg'
+            : 'image/png';
         const dataUrl = `data:${mime};base64,${buf.toString('base64')}`;
         content = [
           { type: 'text', text: p.prompt },

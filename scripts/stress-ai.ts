@@ -66,23 +66,39 @@ function send(text: string, waitSeconds = 180): SendOutcome {
     [
       CLI,
       'send',
-      '--channel', 'telegram',
-      '--chat-id', CHAT_ID,
-      '--user-id', USER_ID,
-      '--text', text,
-      '--wait', String(waitSeconds),
-      '--update-id', `stress-${ulid()}`,
+      '--channel',
+      'telegram',
+      '--chat-id',
+      CHAT_ID,
+      '--user-id',
+      USER_ID,
+      '--text',
+      text,
+      '--wait',
+      String(waitSeconds),
+      '--update-id',
+      `stress-${ulid()}`,
       '--json',
     ],
-    { encoding: 'utf8', cwd: REPO_ROOT, env: { ...process.env }, timeout: (waitSeconds + 10) * 1000 },
+    {
+      encoding: 'utf8',
+      cwd: REPO_ROOT,
+      env: { ...process.env },
+      timeout: (waitSeconds + 10) * 1000,
+    },
   );
   let out: SendOutcome;
   try {
     out = JSON.parse(r.stdout) as SendOutcome;
   } catch {
     out = {
-      runId: null, replyText: '', status: 'failed', durationMs: 0,
-      outboxSent: 0, outboxFailed: 0, error: `parse: stderr=${r.stderr} stdout=${r.stdout.slice(0, 500)}`,
+      runId: null,
+      replyText: '',
+      status: 'failed',
+      durationMs: 0,
+      outboxSent: 0,
+      outboxFailed: 0,
+      error: `parse: stderr=${r.stderr} stdout=${r.stdout.slice(0, 500)}`,
     };
   }
   return out;
@@ -96,7 +112,14 @@ function extractPath(reply: string): string | null {
 
 interface ScenarioResult {
   name: string;
-  turns: Array<{ prompt: string; status: string; reply: string; durationMs: number; pass: boolean; reason: string }>;
+  turns: Array<{
+    prompt: string;
+    status: string;
+    reply: string;
+    durationMs: number;
+    pass: boolean;
+    reason: string;
+  }>;
   pass: boolean;
 }
 
@@ -112,17 +135,31 @@ const giraffe: Scenario = () => {
   const p1 =
     'Generate an image of a giraffe MADE OUT OF APPLE FLESH AND SKIN — its body texture is sliced apple, ' +
     'its spots are darker red apple bits. Use gemini_image. Then send it to this chat via telegram_photo. ' +
-    "After sending, tell me the on-disk path you used so I can ask for edits later.";
+    'After sending, tell me the on-disk path you used so I can ask for edits later.';
   console.log('\n[giraffe] T1 →', p1.slice(0, 80) + '…');
   const r1 = send(p1, 240);
-  console.log('[giraffe] T1 ← (' + r1.status + ', ' + r1.durationMs + 'ms)', r1.replyText.slice(0, 200));
+  console.log(
+    '[giraffe] T1 ← (' + r1.status + ', ' + r1.durationMs + 'ms)',
+    r1.replyText.slice(0, 200),
+  );
   const path1 = extractPath(r1.replyText);
   turns.push({
-    prompt: p1, status: r1.status, reply: r1.replyText, durationMs: r1.durationMs,
-    pass: r1.status === 'succeeded' && path1 !== null && !/chat id|chat_id|paste.*id/i.test(r1.replyText),
-    reason: r1.status !== 'succeeded' ? `status=${r1.status} err=${r1.error}` :
-            path1 === null ? 'no path in reply — bot did not announce the on-disk path' :
-            /chat id|chat_id|paste.*id/i.test(r1.replyText) ? 'bot asked for chat id' : '',
+    prompt: p1,
+    status: r1.status,
+    reply: r1.replyText,
+    durationMs: r1.durationMs,
+    pass:
+      r1.status === 'succeeded' &&
+      path1 !== null &&
+      !/chat id|chat_id|paste.*id/i.test(r1.replyText),
+    reason:
+      r1.status !== 'succeeded'
+        ? `status=${r1.status} err=${r1.error}`
+        : path1 === null
+          ? 'no path in reply — bot did not announce the on-disk path'
+          : /chat id|chat_id|paste.*id/i.test(r1.replyText)
+            ? 'bot asked for chat id'
+            : '',
   });
 
   // Turn 2: edit the previous image (uses inputImagePath)
@@ -134,13 +171,23 @@ const giraffe: Scenario = () => {
       'this time make sure to clearly state the saved path in your reply.';
   console.log('\n[giraffe] T2 →', p2.slice(0, 80) + '…');
   const r2 = send(p2, 240);
-  console.log('[giraffe] T2 ← (' + r2.status + ', ' + r2.durationMs + 'ms)', r2.replyText.slice(0, 200));
+  console.log(
+    '[giraffe] T2 ← (' + r2.status + ', ' + r2.durationMs + 'ms)',
+    r2.replyText.slice(0, 200),
+  );
   const path2 = extractPath(r2.replyText);
   turns.push({
-    prompt: p2, status: r2.status, reply: r2.replyText, durationMs: r2.durationMs,
+    prompt: p2,
+    status: r2.status,
+    reply: r2.replyText,
+    durationMs: r2.durationMs,
     pass: r2.status === 'succeeded' && path2 !== null,
-    reason: r2.status !== 'succeeded' ? `status=${r2.status} err=${r2.error}` :
-            path2 === null ? 'no new path in reply' : '',
+    reason:
+      r2.status !== 'succeeded'
+        ? `status=${r2.status} err=${r2.error}`
+        : path2 === null
+          ? 'no new path in reply'
+          : '',
   });
 
   // Turn 3: edit again — place in a different scene
@@ -152,12 +199,22 @@ const giraffe: Scenario = () => {
     : 'I never got a path. Regenerate the apple-giraffe in a sunset savannah from scratch.';
   console.log('\n[giraffe] T3 →', p3.slice(0, 80) + '…');
   const r3 = send(p3, 240);
-  console.log('[giraffe] T3 ← (' + r3.status + ', ' + r3.durationMs + 'ms)', r3.replyText.slice(0, 200));
+  console.log(
+    '[giraffe] T3 ← (' + r3.status + ', ' + r3.durationMs + 'ms)',
+    r3.replyText.slice(0, 200),
+  );
   turns.push({
-    prompt: p3, status: r3.status, reply: r3.replyText, durationMs: r3.durationMs,
+    prompt: p3,
+    status: r3.status,
+    reply: r3.replyText,
+    durationMs: r3.durationMs,
     pass: r3.status === 'succeeded' && /message[\s_]?id|sent|message \d+/i.test(r3.replyText),
-    reason: r3.status !== 'succeeded' ? `status=${r3.status} err=${r3.error}` :
-            !/message[\s_]?id|sent|message \d+/i.test(r3.replyText) ? 'no message_id confirmation' : '',
+    reason:
+      r3.status !== 'succeeded'
+        ? `status=${r3.status} err=${r3.error}`
+        : !/message[\s_]?id|sent|message \d+/i.test(r3.replyText)
+          ? 'no message_id confirmation'
+          : '',
   });
 
   return { name: 'giraffe', turns, pass: turns.every((t) => t.pass) };
@@ -170,11 +227,17 @@ const selfIntrospect: Scenario = () => {
   const turns: ScenarioResult['turns'] = [];
 
   console.log('\n[self-introspect] T1 → ask for PID via bash_exec');
-  const r1 = send('Use bash_exec to find your current PID (echo $$) and report only the number.', 60);
+  const r1 = send(
+    'Use bash_exec to find your current PID (echo $$) and report only the number.',
+    60,
+  );
   console.log('[self-introspect] T1 ←', r1.replyText.slice(0, 200));
   const pidMatch = r1.replyText.match(/\b\d{3,7}\b/);
   turns.push({
-    prompt: 'PID via bash_exec', status: r1.status, reply: r1.replyText, durationMs: r1.durationMs,
+    prompt: 'PID via bash_exec',
+    status: r1.status,
+    reply: r1.replyText,
+    durationMs: r1.durationMs,
     pass: r1.status === 'succeeded' && pidMatch !== null,
     reason: !pidMatch ? 'no PID-shaped number in reply' : '',
   });
@@ -188,7 +251,10 @@ const selfIntrospect: Scenario = () => {
   );
   console.log('[self-introspect] T2 ←', r2.replyText.slice(0, 200));
   turns.push({
-    prompt: `confirm PID ${pid}`, status: r2.status, reply: r2.replyText, durationMs: r2.durationMs,
+    prompt: `confirm PID ${pid}`,
+    status: r2.status,
+    reply: r2.replyText,
+    durationMs: r2.durationMs,
     pass: r2.status === 'succeeded' && r2.replyText.includes(pid),
     reason: !r2.replyText.includes(pid) ? `expected PID ${pid} in reply` : '',
   });
@@ -201,7 +267,10 @@ const selfIntrospect: Scenario = () => {
   console.log('[self-introspect] T3 ←', r3.replyText.slice(0, 200));
   const hash = r3.replyText.match(/\b[a-f0-9]{7,40}\b/);
   turns.push({
-    prompt: 'git HEAD via bash_exec', status: r3.status, reply: r3.replyText, durationMs: r3.durationMs,
+    prompt: 'git HEAD via bash_exec',
+    status: r3.status,
+    reply: r3.replyText,
+    durationMs: r3.durationMs,
     pass: r3.status === 'succeeded' && hash !== null,
     reason: !hash ? 'no commit-shaped hash in reply' : '',
   });
@@ -214,7 +283,8 @@ const selfIntrospect: Scenario = () => {
 // ──────────────────────────────────────────────────────────────────────
 const neverSurrender: Scenario = () => {
   const turns: ScenarioResult['turns'] = [];
-  const surrenderRe = /i cannot|i can'?t|not exposed|beyond what i can|not in my scope|architecture doesn'?t/i;
+  const surrenderRe =
+    /i cannot|i can'?t|not exposed|beyond what i can|not in my scope|architecture doesn'?t/i;
 
   console.log('\n[never-surrender] T1 → read own .env');
   const r1 = send(
@@ -223,7 +293,10 @@ const neverSurrender: Scenario = () => {
   );
   console.log('[never-surrender] T1 ←', r1.replyText.slice(0, 200));
   turns.push({
-    prompt: 'read own .env', status: r1.status, reply: r1.replyText, durationMs: r1.durationMs,
+    prompt: 'read own .env',
+    status: r1.status,
+    reply: r1.replyText,
+    durationMs: r1.durationMs,
     pass: r1.status === 'succeeded' && !surrenderRe.test(r1.replyText),
     reason: surrenderRe.test(r1.replyText) ? 'surrender language' : '',
   });
@@ -237,7 +310,10 @@ const neverSurrender: Scenario = () => {
   const r2 = send(followUp, 60);
   console.log('[never-surrender] T2 ←', r2.replyText.slice(0, 200));
   turns.push({
-    prompt: 'follow-up', status: r2.status, reply: r2.replyText, durationMs: r2.durationMs,
+    prompt: 'follow-up',
+    status: r2.status,
+    reply: r2.replyText,
+    durationMs: r2.durationMs,
     pass: r2.status === 'succeeded' && !surrenderRe.test(r2.replyText),
     reason: surrenderRe.test(r2.replyText) ? 'surrender language' : '',
   });
@@ -249,10 +325,19 @@ const neverSurrender: Scenario = () => {
   );
   console.log('[never-surrender] T3 ←', r3.replyText.slice(0, 200));
   turns.push({
-    prompt: 'read own system prompt', status: r3.status, reply: r3.replyText, durationMs: r3.durationMs,
-    pass: r3.status === 'succeeded' && /mvpclaw|agent/i.test(r3.replyText) && !surrenderRe.test(r3.replyText),
-    reason: surrenderRe.test(r3.replyText) ? 'surrender language' :
-            !/mvpclaw|agent/i.test(r3.replyText) ? 'reply does not look like the system prompt' : '',
+    prompt: 'read own system prompt',
+    status: r3.status,
+    reply: r3.replyText,
+    durationMs: r3.durationMs,
+    pass:
+      r3.status === 'succeeded' &&
+      /mvpclaw|agent/i.test(r3.replyText) &&
+      !surrenderRe.test(r3.replyText),
+    reason: surrenderRe.test(r3.replyText)
+      ? 'surrender language'
+      : !/mvpclaw|agent/i.test(r3.replyText)
+        ? 'reply does not look like the system prompt'
+        : '',
   });
 
   return { name: 'never-surrender', turns, pass: turns.every((t) => t.pass) };
@@ -294,7 +379,9 @@ async function main(): Promise<void> {
     for (let i = 0; i < r.turns.length; i++) {
       const t = r.turns[i]!;
       const tlabel = t.pass ? '\x1b[32m✓\x1b[0m' : '\x1b[31m✗\x1b[0m';
-      console.log(`        ${tlabel} T${i + 1}  ${t.status.padEnd(10)} ${t.durationMs}ms  ${t.pass ? '' : '→ ' + t.reason}`);
+      console.log(
+        `        ${tlabel} T${i + 1}  ${t.status.padEnd(10)} ${t.durationMs}ms  ${t.pass ? '' : '→ ' + t.reason}`,
+      );
     }
   }
   const allPass = results.every((r) => r.pass);
