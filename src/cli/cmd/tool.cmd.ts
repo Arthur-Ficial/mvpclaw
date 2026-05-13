@@ -10,20 +10,10 @@
  */
 import { defineCommand } from 'citty';
 import { existsSync, readFileSync } from 'node:fs';
-import { buildAppContext } from '../../app/index.js';
-import { loadConfig } from '../../config/index.js';
-import { exitConfig, exitNotFound, exitRuntime, exitUsage } from '../exit.js';
+import { exitNotFound, exitRuntime, exitUsage } from '../exit.js';
 import { resolveOutputContext, writeOut } from '../output.js';
+import { withAppContext } from '../with-context.js';
 import { commonArgs } from './_common.js';
-
-function open(args: Record<string, unknown>): ReturnType<typeof buildAppContext> {
-  try {
-    const config = loadConfig(typeof args['config'] === 'string' ? args['config'] : undefined);
-    return buildAppContext(config);
-  } catch (err) {
-    exitConfig(err instanceof Error ? err.message : String(err));
-  }
-}
 
 const listCmd = defineCommand({
   meta: { name: 'list', description: 'List every registered tool.' },
@@ -40,10 +30,9 @@ const listCmd = defineCommand({
       default: false,
     },
   },
-  run({ args }) {
+  async run({ args }) {
     const ctx = resolveOutputContext(args);
-    const built = open(args);
-    try {
+    await withAppContext(args, (built) => {
       let defs = built.ctx.tools.describe();
       if (typeof args.source === 'string' && args.source.length > 0) {
         defs = defs.filter((d) => d.source === args.source);
@@ -60,9 +49,7 @@ const listCmd = defineCommand({
         })),
         ctx,
       );
-    } finally {
-      built.ctx.db.close();
-    }
+    });
   },
 });
 
@@ -72,18 +59,15 @@ const describeCmd = defineCommand({
     ...commonArgs,
     name: { type: 'positional', description: 'Tool name.', required: true },
   },
-  run({ args }) {
+  async run({ args }) {
     const ctx = resolveOutputContext(args);
-    const built = open(args);
-    try {
+    await withAppContext(args, (built) => {
       const handler = built.ctx.tools.get(String(args.name));
       if (!handler) {
         exitNotFound(`tool "${String(args.name)}" not found`);
       }
       writeOut(handler.definition, ctx);
-    } finally {
-      built.ctx.db.close();
-    }
+    });
   },
 });
 
@@ -105,8 +89,7 @@ const callCmd = defineCommand({
   },
   async run({ args }) {
     const ctx = resolveOutputContext(args);
-    const built = open(args);
-    try {
+    await withAppContext(args, async (built) => {
       let raw = typeof args.input === 'string' ? args.input : '{}';
       if (raw === '-') {
         raw = readFileSync(0, 'utf8');
@@ -136,9 +119,7 @@ const callCmd = defineCommand({
         }
         exitRuntime(msg);
       }
-    } finally {
-      built.ctx.db.close();
-    }
+    });
   },
 });
 

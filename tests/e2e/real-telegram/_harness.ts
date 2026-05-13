@@ -14,41 +14,16 @@
  * `pnpm check` never triggers this — only `pnpm test:real-telegram`.
  */
 import { spawnSync } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { ulid } from 'ulid';
+import { loadEnvFile } from '../../../src/lib/env-loader.js';
 
 const REPO_ROOT = resolve(__dirname, '../../..');
 export const CLI = resolve(REPO_ROOT, 'dist/cli/main.js');
 
-// Load the project's .env BEFORE any skip-gate check so vitest sees the
-// project's TELEGRAM_BOT_TOKEN and OPENROUTER_API_KEY. Mirrors the loader at
-// `src/cli/load-env.ts` — project .env wins over shell env.
-(function loadProjectEnv(): void {
-  const envPath = resolve(REPO_ROOT, '.env');
-  if (!existsSync(envPath)) {
-    return;
-  }
-  for (const line of readFileSync(envPath, 'utf8').split(/\r?\n/)) {
-    const t = line.trim();
-    if (t === '' || t.startsWith('#')) {
-      continue;
-    }
-    const eq = t.indexOf('=');
-    if (eq < 0) {
-      continue;
-    }
-    const key = t.slice(0, eq).trim();
-    let value = t.slice(eq + 1).trim();
-    if (
-      (value.startsWith('"') && value.endsWith('"')) ||
-      (value.startsWith("'") && value.endsWith("'"))
-    ) {
-      value = value.slice(1, -1);
-    }
-    process.env[key] = value;
-  }
-})();
+// Vitest doesn't auto-load .env. Same SSOT as the CLI's load-env.ts.
+loadEnvFile(resolve(REPO_ROOT, '.env'));
 
 /** The single test chat the harness sends to. Override with MVPCLAW_TEST_CHAT_ID. */
 export const TEST_CHAT_ID = process.env['MVPCLAW_TEST_CHAT_ID'] ?? '1234567890';

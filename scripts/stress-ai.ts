@@ -18,10 +18,10 @@
  * to chat 1234567890 per scenario.
  */
 import { spawnSync } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ulid } from 'ulid';
+import { loadEnvFile } from '../src/lib/env-loader.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -30,25 +30,8 @@ const CLI = resolve(REPO_ROOT, 'dist/cli/main.js');
 const CHAT_ID = '1234567890';
 const USER_ID = '1234567890';
 
-// ──────────────────────────────────────────────────────────────────────
-// .env loader (same logic as src/cli/load-env.ts; project wins over shell)
-// ──────────────────────────────────────────────────────────────────────
-(function loadEnv(): void {
-  const envPath = resolve(REPO_ROOT, '.env');
-  if (!existsSync(envPath)) return;
-  for (const line of readFileSync(envPath, 'utf8').split(/\r?\n/)) {
-    const t = line.trim();
-    if (t === '' || t.startsWith('#')) continue;
-    const eq = t.indexOf('=');
-    if (eq < 0) continue;
-    const k = t.slice(0, eq).trim();
-    let v = t.slice(eq + 1).trim();
-    if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) {
-      v = v.slice(1, -1);
-    }
-    process.env[k] = v;
-  }
-})();
+// SSOT: project .env wins over shell.
+loadEnvFile(resolve(REPO_ROOT, '.env'));
 
 interface SendOutcome {
   runId: string | null;
