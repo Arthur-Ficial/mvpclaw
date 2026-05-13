@@ -195,18 +195,35 @@ function claudeSpawnTool(enabled: boolean): ToolHandler {
     definition: {
       name: 'claude_spawn',
       description:
-        'Spawn the `claude` CLI with a one-shot prompt. Returns the raw text output. ' +
-        'Use this to delegate a complex sub-task to a fresh Claude Code instance (e.g. ' +
-        'editing your own source, running pnpm check, committing). Default timeout is ' +
-        '5 minutes; pass `timeoutMs` up to 600000 (10 min) for longer tasks. If a single ' +
-        'spawn times out, retry with a NARROWER prompt or chain multiple smaller spawns.',
+        'Spawn the `claude` CLI with a prompt. Returns the raw text output. ' +
+        'Use this to delegate a complex sub-task to Claude Code (e.g. editing source, ' +
+        'running pnpm check, committing, deploying). Default timeout is 5 minutes; ' +
+        'pass `timeoutMs` up to 600000 (10 min) for longer tasks. ' +
+        '\n\n' +
+        '**For multi-step projects** (e.g. "build a game", "create + push + deploy a repo"): ' +
+        'pick a stable `cwd` (e.g. `/tmp/mygame`) and pass `continueSession: true` on every ' +
+        'call after the first. `--continue` makes claude resume the most-recent session in ' +
+        'that cwd, so each spawn extends the same conversation — full code context, scratch ' +
+        'state, and decisions persist across spawns. ALWAYS reuse the same cwd for a project; ' +
+        'switching cwds starts a fresh session. Record the project cwd via memory_append so ' +
+        'you can find it on later turns.',
       inputSchema: {
         type: 'object',
         required: ['prompt'],
         properties: {
           prompt: { type: 'string', minLength: 1, maxLength: 8000 },
           timeoutMs: { type: 'integer', minimum: 5000, maximum: 600_000, default: 300_000 },
-          cwd: { type: 'string', description: 'Working directory.' },
+          cwd: {
+            type: 'string',
+            description: 'Working directory. Stable across calls for one project.',
+          },
+          continueSession: {
+            type: 'boolean',
+            description:
+              'When true, passes `--continue` so the spawned claude resumes the latest ' +
+              'session in `cwd`. Use on every call after the first within a multi-step ' +
+              'project. Default false (fresh session).',
+          },
         },
       },
       source: 'builtin',
@@ -216,7 +233,12 @@ function claudeSpawnTool(enabled: boolean): ToolHandler {
       if (!enabled) {
         throw new Error('claude_spawn is disabled — set power.claudeSpawn to true');
       }
-      const p = input as { prompt: string; timeoutMs?: number; cwd?: string };
+      const p = input as {
+        prompt: string;
+        timeoutMs?: number;
+        cwd?: string;
+        continueSession?: boolean;
+      };
       // Drop ANTHROPIC_API_KEY so the spawned claude falls back to the
       // host user's subscription auth (macOS keychain). The launchd plist
       // sets ANTHROPIC_API_KEY for OUR provider; the sub-agent should use
@@ -225,7 +247,12 @@ function claudeSpawnTool(enabled: boolean): ToolHandler {
       delete env['ANTHROPIC_API_KEY'];
       delete env['ANTHROPIC_AUTH_TOKEN'];
       delete env['ANTHROPIC_BASE_URL'];
-      const r = spawnSync('claude', ['--dangerously-skip-permissions', '-p', p.prompt], {
+      const args = ['--dangerously-skip-permissions'];
+      if (p.continueSession === true) {
+        args.push('--continue');
+      }
+      args.push('-p', p.prompt);
+      const r = spawnSync('claude', args, {
         cwd: p.cwd ?? homedir(),
         timeout: p.timeoutMs ?? 300_000,
         encoding: 'utf8',
