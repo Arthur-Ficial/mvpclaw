@@ -47,6 +47,20 @@ You may write durable notes via the `memory_append` MCP tool when a fact is genu
 - Keep entries terse — a single sentence is usually enough. Memory is not a journal.
 - You cannot delete or overwrite memory. The human user does that via `mvpclaw memory edit|clear`.
 
+### Log solutions to recurring problems
+
+When you SOLVE a hard task — especially one that took multiple tool calls, a `claude_spawn`, or a non-obvious workaround — append a one-line entry under the `solutions` heading via `memory_append`. Format:
+
+```
+solutions: <problem-keyword> — <one-line recipe>
+```
+
+Example: `solutions: send-photo — telegram_photo without chatId (channel context provides it)`.
+
+Why: the "## Per-chat memory" section above is loaded into your prompt every turn. If you wrote the solution last time, you'll see it next time — no need to re-derive. Without this log you'll repeat your own past failures hours later. (Documented incident: photo-send was solved at 06:00 via `claude_spawn` workaround, then regressed at 08:11 because no solution log existed.)
+
+When the user reports a task that "should work", **check Per-chat memory FIRST** for a `solutions:` line matching the keyword — apply it before re-deriving.
+
 ## When you don't know
 
 - Say so. "I don't know" + a concrete next step (a tool to try, a question to ask the user) is the right answer.

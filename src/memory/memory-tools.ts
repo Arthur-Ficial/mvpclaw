@@ -51,13 +51,20 @@ function memoryReadTool(): ToolHandler {
     definition: {
       name: 'memory_read',
       description:
-        'Read agent runtime memory (CLAUDE.local.md) or per-chat memory. scope is "runtime" or "chat".',
+        'Read agent runtime memory (CLAUDE.local.md) or per-chat memory. ' +
+        'scope is "runtime" or "chat". For scope=chat, omit chat_id when called ' +
+        'from an agent turn — it defaults to the current chat.',
       inputSchema: {
         type: 'object',
         required: ['scope'],
         properties: {
           scope: { type: 'string', enum: ['runtime', 'chat'] },
-          chat_id: { type: 'string', description: 'Required when scope=chat.' },
+          chat_id: {
+            type: 'string',
+            description:
+              'Optional when called from an agent turn (defaults to current chat). ' +
+              'REQUIRED when invoked via `mvpclaw tool call` outside a turn.',
+          },
         },
       },
       source: 'builtin',
@@ -70,12 +77,16 @@ function memoryReadTool(): ToolHandler {
         const body = existsSync(path) ? readFileSync(path, 'utf8') : '';
         return Promise.resolve({ scope: 'runtime', body });
       }
-      if (!p.chat_id) {
-        throw new Error('memory_read: chat_id is required when scope=chat');
+      const chatId = p.chat_id ?? ctx.chatId;
+      if (typeof chatId !== 'string' || chatId.length === 0) {
+        throw new Error(
+          'memory_read: no chat_id given and no current chat context — ' +
+            'pass chat_id explicitly outside of an agent turn',
+        );
       }
       return Promise.resolve({
         scope: 'chat',
-        body: ChatMemoryRepo.readChatMemory(ctx.db, p.chat_id),
+        body: ChatMemoryRepo.readChatMemory(ctx.db, chatId),
       });
     },
   };
@@ -86,14 +97,22 @@ function memoryAppendTool(redactEnvNames: readonly string[]): ToolHandler {
     definition: {
       name: 'memory_append',
       description:
-        'Append a dated entry to agent memory. Append-only; secret-redacted; max 2000 chars per call.',
+        'Append a dated entry to agent memory. Append-only; secret-redacted; max 2000 chars per call. ' +
+        'For scope=chat, omit chat_id when called from an agent turn — it defaults to the current chat. ' +
+        'Use this to log SOLUTIONS to recurring problems (e.g. "solutions: send-photo — ..."): they ' +
+        "will appear in the per-chat memory section of your next prompt so you don't have to re-derive.",
       inputSchema: {
         type: 'object',
         required: ['scope', 'text'],
         properties: {
           scope: { type: 'string', enum: ['runtime', 'chat'] },
           text: { type: 'string', minLength: 1, maxLength: MEMORY_LIMITS.maxAppendChars },
-          chat_id: { type: 'string', description: 'Required when scope=chat.' },
+          chat_id: {
+            type: 'string',
+            description:
+              'Optional when called from an agent turn (defaults to current chat). ' +
+              'REQUIRED when invoked via `mvpclaw tool call` outside a turn.',
+          },
         },
       },
       source: 'builtin',
@@ -124,14 +143,18 @@ function memoryAppendTool(redactEnvNames: readonly string[]): ToolHandler {
           appendedBytes: Buffer.byteLength(entry, 'utf8'),
         });
       }
-      if (!p.chat_id) {
-        throw new Error('memory_append: chat_id is required when scope=chat');
+      const chatId = p.chat_id ?? ctx.chatId;
+      if (typeof chatId !== 'string' || chatId.length === 0) {
+        throw new Error(
+          'memory_append: no chat_id given and no current chat context — ' +
+            'pass chat_id explicitly outside of an agent turn',
+        );
       }
-      ChatMemoryRepo.appendChatMemory(ctx.db, p.chat_id, entry);
+      ChatMemoryRepo.appendChatMemory(ctx.db, chatId, entry);
       // Rotation per chat: if size_bytes > maxChatChars, archive + clear.
-      const body = ChatMemoryRepo.readChatMemory(ctx.db, p.chat_id);
+      const body = ChatMemoryRepo.readChatMemory(ctx.db, chatId);
       if (body.length > MEMORY_LIMITS.maxChatChars) {
-        ChatMemoryRepo.archiveChatMemory(ctx.db, p.chat_id);
+        ChatMemoryRepo.archiveChatMemory(ctx.db, chatId);
       }
       return Promise.resolve({ scope: 'chat', appendedBytes: Buffer.byteLength(entry, 'utf8') });
     },
