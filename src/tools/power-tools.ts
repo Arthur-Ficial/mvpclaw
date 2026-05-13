@@ -195,13 +195,17 @@ function claudeSpawnTool(enabled: boolean): ToolHandler {
     definition: {
       name: 'claude_spawn',
       description:
-        'Spawn the `claude` CLI with a one-shot prompt. Returns the raw text output. Use this to delegate a complex sub-task to a fresh Claude Code instance.',
+        'Spawn the `claude` CLI with a one-shot prompt. Returns the raw text output. ' +
+        'Use this to delegate a complex sub-task to a fresh Claude Code instance (e.g. ' +
+        'editing your own source, running pnpm check, committing). Default timeout is ' +
+        '5 minutes; pass `timeoutMs` up to 600000 (10 min) for longer tasks. If a single ' +
+        'spawn times out, retry with a NARROWER prompt or chain multiple smaller spawns.',
       inputSchema: {
         type: 'object',
         required: ['prompt'],
         properties: {
           prompt: { type: 'string', minLength: 1, maxLength: 8000 },
-          timeoutMs: { type: 'integer', minimum: 5000, maximum: 600_000, default: 120_000 },
+          timeoutMs: { type: 'integer', minimum: 5000, maximum: 600_000, default: 300_000 },
           cwd: { type: 'string', description: 'Working directory.' },
         },
       },
@@ -223,7 +227,7 @@ function claudeSpawnTool(enabled: boolean): ToolHandler {
       delete env['ANTHROPIC_BASE_URL'];
       const r = spawnSync('claude', ['--dangerously-skip-permissions', '-p', p.prompt], {
         cwd: p.cwd ?? homedir(),
-        timeout: p.timeoutMs ?? 120_000,
+        timeout: p.timeoutMs ?? 300_000,
         encoding: 'utf8',
         maxBuffer: 256 * 1024,
         env,
