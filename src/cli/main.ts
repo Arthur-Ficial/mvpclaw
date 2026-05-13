@@ -14,6 +14,7 @@
  * Universal flags (`--json`, `--quiet`, `--verbose`, `--config`) are accepted
  * by every sub-command and resolved via `src/cli/output.ts`.
  */
+import './load-env.js';
 import { defineCommand, runMain } from 'citty';
 import { agentCmd } from './cmd/agent.cmd.js';
 import { chatCmd } from './cmd/chat.cmd.js';

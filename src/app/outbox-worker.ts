@@ -60,8 +60,11 @@ export async function drainOutbox(
   let cancelled = 0;
   const tz = ctx.config.app.defaultTimezone;
   for (const row of pending) {
-    // Proactive gating — only rows with no run_id are scheduler-originated.
-    const isProactive = row.run_id === null;
+    // Proactive gating — driven by the explicit `is_proactive` column.
+    // Historical note: this used to be `row.run_id === null` but that
+    // misclassified /help replies (which also have run_id=null but are
+    // reactive). See migration 0006_outbox_is_proactive.sql.
+    const isProactive = row.is_proactive === 1;
     if (isProactive) {
       const decision = evaluateProactive(ctx.db, row.chat_id, ctx.config.proactive, Date.now(), tz);
       if (!decision.allowed) {

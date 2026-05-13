@@ -25,6 +25,7 @@ export interface OutboxRow {
   status: OutboxStatus;
   attempts: number;
   provider_message_id: string | null;
+  is_proactive: 0 | 1;
   created_at: string;
   updated_at: string;
   sent_at: string | null;
@@ -40,6 +41,12 @@ export interface OutboxEnqueue {
   provider_thread_id?: string | null;
   kind: string;
   text: string;
+  /**
+   * True for scheduler-driven proactive outreach (subject to quiet-hours and
+   * daily-cap gating). False for direct reactive replies to an inbound,
+   * including slash-command replies that have `run_id=null`. Defaults to false.
+   */
+  is_proactive?: boolean;
 }
 
 /**
@@ -52,10 +59,11 @@ export interface OutboxEnqueue {
 export function enqueueOutbox(db: Db, input: OutboxEnqueue): OutboxRow {
   const id = ulid();
   const now = new Date().toISOString();
+  const isProactive: 0 | 1 = input.is_proactive === true ? 1 : 0;
   db.prepare(
     `INSERT INTO outbox
-       (id, chat_id, run_id, provider, provider_chat_id, provider_thread_id, kind, text, status, attempts, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', 0, ?, ?)`,
+       (id, chat_id, run_id, provider, provider_chat_id, provider_thread_id, kind, text, status, attempts, is_proactive, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', 0, ?, ?, ?)`,
   ).run(
     id,
     input.chat_id,
@@ -65,6 +73,7 @@ export function enqueueOutbox(db: Db, input: OutboxEnqueue): OutboxRow {
     input.provider_thread_id ?? null,
     input.kind,
     input.text,
+    isProactive,
     now,
     now,
   );
@@ -80,6 +89,7 @@ export function enqueueOutbox(db: Db, input: OutboxEnqueue): OutboxRow {
     status: 'pending',
     attempts: 0,
     provider_message_id: null,
+    is_proactive: isProactive,
     created_at: now,
     updated_at: now,
     sent_at: null,

@@ -20,6 +20,7 @@
     "test": "vitest run --passWithNoTests tests/unit tests/integration",
     "test:watch": "vitest",
     "test:e2e": "vitest run --passWithNoTests tests/e2e",
+    "test:real-telegram": "MVPCLAW_REAL_TELEGRAM=1 vitest run --passWithNoTests tests/e2e/real-telegram",
     "migrate": "tsx src/cli/main.ts db migrate",
     "check": "pnpm typecheck && pnpm lint && pnpm format:check && pnpm build && pnpm test && pnpm test:e2e"
   },
