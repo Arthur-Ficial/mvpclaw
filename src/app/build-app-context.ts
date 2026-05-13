@@ -104,6 +104,9 @@ export function buildAppContext(
         context: (input) => ({
           db,
           ...(input.sessionId ? { runId: input.runId } : {}),
+          ...(input.chatId !== undefined ? { chatId: input.chatId } : {}),
+          ...(input.providerChatId !== undefined ? { providerChatId: input.providerChatId } : {}),
+          ...(input.channel !== undefined ? { channel: input.channel } : {}),
         }),
       },
       serverTools: config.openrouter.enableServerTools ? config.openrouter.serverTools : [],

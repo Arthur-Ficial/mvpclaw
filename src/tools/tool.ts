@@ -29,8 +29,16 @@ export interface ToolDefinition {
 export interface ToolExecutionContext {
   /** Open SQLite handle (for tools that read agent state). */
   db: Db;
-  /** Optional internal chat id. Some tools care which chat is asking. */
+  /** Optional internal chat id (ULID). Some tools care which chat is asking. */
   chatId?: string;
+  /**
+   * Optional external chat id on the channel (e.g. Telegram chat_id `1234567890`).
+   * Tools that talk to the channel (telegram_photo, future telegram_edit) use
+   * this as a fallback when the agent omits an explicit chatId.
+   */
+  providerChatId?: string;
+  /** Optional channel name (`'telegram'`, `'cli-inject'`, …) for the current turn. */
+  channel?: string;
   /** Optional run id (when invoked during an agent turn). */
   runId?: string;
 }

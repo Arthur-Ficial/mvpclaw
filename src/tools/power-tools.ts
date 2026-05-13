@@ -346,12 +346,19 @@ function telegramPhotoTool(enabled: boolean): ToolHandler {
     definition: {
       name: 'telegram_photo',
       description:
-        'Send a photo to a Telegram chat. Path must be an existing file on disk. Returns the Telegram message_id.',
+        'Send a photo to a Telegram chat. Path must be an existing file on disk. ' +
+        'When invoked by the agent during a chat turn, `chatId` defaults to the current ' +
+        "chat — omit it to send to whoever you're talking to. Returns the Telegram message_id.",
       inputSchema: {
         type: 'object',
-        required: ['chatId', 'path'],
+        required: ['path'],
         properties: {
-          chatId: { type: 'string', description: 'External Telegram chat id.' },
+          chatId: {
+            type: 'string',
+            description:
+              'External Telegram chat id. Optional when called from an agent turn ' +
+              '(falls back to the current chat). REQUIRED when called via `mvpclaw tool call`.',
+          },
           path: { type: 'string', description: 'Absolute path to the image file.' },
           caption: { type: 'string', maxLength: 1024 },
         },
@@ -359,7 +366,7 @@ function telegramPhotoTool(enabled: boolean): ToolHandler {
       source: 'builtin',
       enabled,
     },
-    async execute(input): Promise<{ messageId: number; ok: boolean }> {
+    async execute(input, execCtx): Promise<{ messageId: number; ok: boolean }> {
       if (!enabled) {
         throw new Error('telegram_photo is disabled — set power.telegramPhoto to true');
       }
@@ -367,11 +374,18 @@ function telegramPhotoTool(enabled: boolean): ToolHandler {
       if (typeof token !== 'string' || token.length === 0) {
         throw new Error('telegram_photo: TELEGRAM_BOT_TOKEN unset');
       }
-      const p = input as { chatId: string; path: string; caption?: string };
+      const p = input as { chatId?: string; path: string; caption?: string };
+      const chatId = p.chatId ?? execCtx.providerChatId;
+      if (typeof chatId !== 'string' || chatId.length === 0) {
+        throw new Error(
+          'telegram_photo: no chatId given and no current chat context — ' +
+            'pass `chatId` explicitly when invoking outside an agent turn',
+        );
+      }
       const fs = await import('node:fs/promises');
       const buf = await fs.readFile(p.path);
       const form = new FormData();
-      form.append('chat_id', p.chatId);
+      form.append('chat_id', chatId);
       if (p.caption) {
         form.append('caption', p.caption);
       }

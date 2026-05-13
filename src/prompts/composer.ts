@@ -36,6 +36,12 @@ export interface ComposeInput {
   history: readonly ChatMessage[];
   userText: string;
   chatId?: string | undefined;
+  /**
+   * Current channel context — exposed to the model as a "## Channel context"
+   * section so tools that need the external chat id (telegram_photo, etc.)
+   * don't have to ask the user. Optional so unit tests can omit it.
+   */
+  channelContext?: { channel: string; providerChatId: string } | undefined;
   db: Db;
   tools: ToolRegistry;
 }
@@ -136,6 +142,20 @@ export function composePrompt(input: ComposeInput): ComposeOutput {
     if (body.length > 0) {
       sections.push(`## Per-chat memory (chat_id=${input.chatId})\n\n${body}`);
     }
+  }
+
+  // 2g. Channel context — gives the agent its own chat id so tools that
+  // talk back to the channel (telegram_photo, telegram_edit, …) don't
+  // have to ask the user "what's your chat id?".
+  if (input.channelContext !== undefined) {
+    sections.push(
+      `## Channel context\n\n` +
+        `- channel: ${input.channelContext.channel}\n` +
+        `- external chat id: ${input.channelContext.providerChatId}\n\n` +
+        `When a tool needs a chat id (e.g. \`telegram_photo\`), omit the \`chatId\` arg ` +
+        `to default to the chat above, or pass that id explicitly. Never ask the user ` +
+        `for it — it's right here.`,
+    );
   }
 
   const systemPrompt = sections.join('\n\n');

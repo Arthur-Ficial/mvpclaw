@@ -45,6 +45,12 @@ export interface AgentInput {
   skills: readonly LoadedSkill[];
   /** Generated MCP config for Claude CLI (`--mcp-config`); ignored by OpenRouter direct. */
   mcpConfig: McpConfigSnapshot;
+  /** Internal chat id (ULID). Forwarded to tool context. */
+  chatId?: string;
+  /** External chat id (e.g. Telegram chat_id). Forwarded to tool context. */
+  providerChatId?: string;
+  /** Channel name (`'telegram'`, `'cli-inject'`, …). Forwarded to tool context. */
+  channel?: string;
 }
 
 /**

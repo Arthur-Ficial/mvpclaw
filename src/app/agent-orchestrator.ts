@@ -106,6 +106,10 @@ export async function runAgentTurn(
     history: windowed.history,
     userText: resolved.message.text,
     chatId: resolved.chat.id,
+    channelContext: {
+      channel: resolved.chat.provider,
+      providerChatId: resolved.chat.provider_chat_id,
+    },
     db: ctx.db,
     tools: ctx.tools,
   });
@@ -132,6 +136,9 @@ export async function runAgentTurn(
       systemPrompt: prompt.systemPrompt,
       skills: [],
       mcpConfig: { servers: {} },
+      chatId: resolved.chat.id,
+      providerChatId: resolved.chat.provider_chat_id,
+      channel: resolved.chat.provider,
     })) {
       tracer.write({ type: 'provider_event', event });
       if (event.type === 'text_delta') {
