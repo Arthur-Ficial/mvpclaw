@@ -8,26 +8,32 @@ import { defineCommand } from 'citty';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { resolve } from 'node:path';
-import { buildAppContext } from '../../app/index.js';
-import { loadConfig } from '../../config/index.js';
 import { ChatMemoryRepo } from '../../db/index.js';
+import { nowIso } from '../../lib/index.js';
 import { redactString } from '../../logging/index.js';
 import { MEMORY_LIMITS } from '../../memory/index.js';
-import { exitConfig, exitNotFound, exitUsage } from '../exit.js';
+import { exitNotFound, exitUsage } from '../exit.js';
 import { resolveOutputContext, writeOut } from '../output.js';
+import { withAppContext } from '../with-context.js';
 import { commonArgs } from './_common.js';
-
-function open(args: Record<string, unknown>): ReturnType<typeof buildAppContext> {
-  try {
-    const config = loadConfig(typeof args['config'] === 'string' ? args['config'] : undefined);
-    return buildAppContext(config);
-  } catch (err) {
-    exitConfig(err instanceof Error ? err.message : String(err));
-  }
-}
 
 const runtimePath = (): string =>
   resolve(homedir(), '.mvpclaw', 'workspaces', 'default', 'CLAUDE.local.md');
+
+function readRuntime(): string {
+  const path = runtimePath();
+  return existsSync(path) ? readFileSync(path, 'utf8') : '';
+}
+
+function requireChatScope(args: Record<string, unknown>): string {
+  if (args['scope'] !== 'chat') {
+    exitUsage('--scope must be runtime or chat');
+  }
+  if (typeof args['chat-id'] !== 'string') {
+    exitUsage('--chat-id is required when --scope=chat');
+  }
+  return args['chat-id'] as string;
+}
 
 const showCmd = defineCommand({
   meta: { name: 'show', description: 'Show memory contents.' },
@@ -36,33 +42,19 @@ const showCmd = defineCommand({
     scope: { type: 'string', description: 'runtime | chat', required: true },
     'chat-id': { type: 'string', description: 'Required when scope=chat.', required: false },
   },
-  run({ args }) {
+  async run({ args }) {
     const ctx = resolveOutputContext(args);
-    const built = open(args);
-    try {
+    await withAppContext(args, (built) => {
       if (args.scope === 'runtime') {
-        const path = runtimePath();
-        const body = existsSync(path) ? readFileSync(path, 'utf8') : '';
-        writeOut({ scope: 'runtime', path, body }, ctx);
+        writeOut({ scope: 'runtime', path: runtimePath(), body: readRuntime() }, ctx);
         return;
       }
-      if (args.scope !== 'chat') {
-        exitUsage('--scope must be runtime or chat');
-      }
-      if (typeof args['chat-id'] !== 'string') {
-        exitUsage('--chat-id is required when --scope=chat');
-      }
+      const chatId = requireChatScope(args);
       writeOut(
-        {
-          scope: 'chat',
-          chatId: args['chat-id'],
-          body: ChatMemoryRepo.readChatMemory(built.ctx.db, args['chat-id']),
-        },
+        { scope: 'chat', chatId, body: ChatMemoryRepo.readChatMemory(built.ctx.db, chatId) },
         ctx,
       );
-    } finally {
-      built.ctx.db.close();
-    }
+    });
   },
 });
 
@@ -74,37 +66,27 @@ const appendCmd = defineCommand({
     'chat-id': { type: 'string', required: false },
     text: { type: 'string', required: true },
   },
-  run({ args }) {
+  async run({ args }) {
     const ctx = resolveOutputContext(args);
-    const built = open(args);
-    try {
+    await withAppContext(args, (built) => {
       const text = String(args.text);
       if (text.length > MEMORY_LIMITS.maxAppendChars) {
         exitUsage(`--text exceeds ${MEMORY_LIMITS.maxAppendChars} chars (got ${text.length})`);
       }
       const safe = redactString(text, built.ctx.config.logging.redact);
-      const entry = `## ${new Date().toISOString()}\n${safe}\n\n`;
+      const entry = `## ${nowIso()}\n${safe}\n\n`;
       if (args.scope === 'runtime') {
-        const path = runtimePath();
-        const prev = existsSync(path) ? readFileSync(path, 'utf8') : '';
-        writeFileSync(path, prev + entry, 'utf8');
+        writeFileSync(runtimePath(), readRuntime() + entry, 'utf8');
         writeOut(
           { ok: true, scope: 'runtime', appendedBytes: Buffer.byteLength(entry, 'utf8') },
           ctx,
         );
         return;
       }
-      if (args.scope !== 'chat') {
-        exitUsage('--scope must be runtime or chat');
-      }
-      if (typeof args['chat-id'] !== 'string') {
-        exitUsage('--chat-id is required when --scope=chat');
-      }
-      ChatMemoryRepo.appendChatMemory(built.ctx.db, args['chat-id'], entry);
+      const chatId = requireChatScope(args);
+      ChatMemoryRepo.appendChatMemory(built.ctx.db, chatId, entry);
       writeOut({ ok: true, scope: 'chat', appendedBytes: Buffer.byteLength(entry, 'utf8') }, ctx);
-    } finally {
-      built.ctx.db.close();
-    }
+    });
   },
 });
 
@@ -116,29 +98,21 @@ const clearCmd = defineCommand({
     'chat-id': { type: 'string', required: false },
     yes: { type: 'boolean', default: false },
   },
-  run({ args }) {
+  async run({ args }) {
     const ctx = resolveOutputContext(args);
     if (!args.yes) {
       exitUsage('clear is destructive; pass --yes to confirm');
     }
-    const built = open(args);
-    try {
+    await withAppContext(args, (built) => {
       if (args.scope === 'runtime') {
         writeFileSync(runtimePath(), '', 'utf8');
         writeOut({ ok: true, scope: 'runtime' }, ctx);
         return;
       }
-      if (args.scope !== 'chat') {
-        exitUsage('--scope must be runtime or chat');
-      }
-      if (typeof args['chat-id'] !== 'string') {
-        exitUsage('--chat-id is required when --scope=chat');
-      }
-      ChatMemoryRepo.setChatMemory(built.ctx.db, args['chat-id'], '');
-      writeOut({ ok: true, scope: 'chat', chatId: args['chat-id'] }, ctx);
-    } finally {
-      built.ctx.db.close();
-    }
+      const chatId = requireChatScope(args);
+      ChatMemoryRepo.setChatMemory(built.ctx.db, chatId, '');
+      writeOut({ ok: true, scope: 'chat', chatId }, ctx);
+    });
   },
 });
 
@@ -150,13 +124,12 @@ const grepCmd = defineCommand({
     'chat-id': { type: 'string', required: false },
     pattern: { type: 'positional', required: true },
   },
-  run({ args }) {
+  async run({ args }) {
     const ctx = resolveOutputContext(args);
-    const built = open(args);
-    try {
+    await withAppContext(args, (built) => {
       let body = '';
       if (args.scope === 'runtime') {
-        body = existsSync(runtimePath()) ? readFileSync(runtimePath(), 'utf8') : '';
+        body = readRuntime();
       } else if (args.scope === 'chat' && typeof args['chat-id'] === 'string') {
         body = ChatMemoryRepo.readChatMemory(built.ctx.db, args['chat-id']);
       } else {
@@ -168,9 +141,7 @@ const grepCmd = defineCommand({
         .map((line, i) => ({ line, lineNumber: i + 1 }))
         .filter((x) => re.test(x.line));
       writeOut({ scope: String(args.scope), matchCount: matches.length, matches }, ctx);
-    } finally {
-      built.ctx.db.close();
-    }
+    });
   },
 });
 
@@ -181,10 +152,9 @@ const archiveCmd = defineCommand({
     'chat-id': { type: 'string', required: true },
     limit: { type: 'string', default: '20' },
   },
-  run({ args }) {
+  async run({ args }) {
     const ctx = resolveOutputContext(args);
-    const built = open(args);
-    try {
+    await withAppContext(args, (built) => {
       const rows = ChatMemoryRepo.listArchive(
         built.ctx.db,
         String(args['chat-id']),
@@ -194,9 +164,7 @@ const archiveCmd = defineCommand({
         exitNotFound('no archive entries for this chat');
       }
       writeOut(rows, ctx);
-    } finally {
-      built.ctx.db.close();
-    }
+    });
   },
 });
 
