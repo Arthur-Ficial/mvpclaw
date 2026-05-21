@@ -74,4 +74,41 @@ describe('config loader — env substitution + Zod validation', () => {
     const config = loadConfig(path, { OPENROUTER_API_KEY: 'sk-or-v1-test' });
     expect(config.claudeCli.env['ANTHROPIC_AUTH_TOKEN']).toBe('sk-or-v1-test');
   });
+
+  it('defaults skills toggles to loadAll=true with empty enable/disable lists', () => {
+    const path = join(tmp, 'cfg.json');
+    writeFileSync(path, JSON.stringify({}));
+    const config = loadConfig(path);
+    expect(config.skills.loadAll).toBe(true);
+    expect(config.skills.enabled).toEqual([]);
+    expect(config.skills.disabled).toEqual([]);
+  });
+
+  it('parses skills.enabled and skills.disabled lists', () => {
+    const path = join(tmp, 'cfg.json');
+    writeFileSync(
+      path,
+      JSON.stringify({ skills: { enabled: ['email', 'github-deploy'], disabled: ['self-modification'] } }),
+    );
+    const config = loadConfig(path);
+    expect(config.skills.enabled).toEqual(['email', 'github-deploy']);
+    expect(config.skills.disabled).toEqual(['self-modification']);
+  });
+
+  it('defaults the deploys block (github private, vercel preview)', () => {
+    const path = join(tmp, 'cfg.json');
+    writeFileSync(path, JSON.stringify({}));
+    const config = loadConfig(path);
+    expect(config.deploys.github.defaultVisibility).toBe('private');
+    expect(config.deploys.vercel.defaultTarget).toBe('preview');
+  });
+
+  it('defaults the email block disabled with himalaya default account', () => {
+    const path = join(tmp, 'cfg.json');
+    writeFileSync(path, JSON.stringify({}));
+    const config = loadConfig(path);
+    expect(config.email.enabled).toBe(false);
+    expect(config.email.himalayaAccount).toBe('');
+    expect(config.email.defaultPageSize).toBe(10);
+  });
 });

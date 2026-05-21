@@ -131,7 +131,7 @@ export function buildAppContext(
   // the `skills` table. Sync the SKILL.md files into the Claude workspace
   // so Claude CLI discovers them via its standard mechanism.
   let skills: readonly LoadedSkill[] = [];
-  if (config.skills.enabled) {
+  if (config.skills.loadAll) {
     const loaded = loadSkillsFromDir(resolve(process.cwd(), config.skills.skillsDir), db);
     skills = loaded.skills;
     if (loaded.errors.length > 0) {

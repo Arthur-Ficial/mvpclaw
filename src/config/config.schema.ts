@@ -167,9 +167,19 @@ export const IdleConfig = z.object({
 });
 export type IdleConfig = z.infer<typeof IdleConfig>;
 
-/** Skills loader config. */
+/**
+ * Skills loader config.
+ *
+ * `enabled`/`disabled` are the SSOT for which skills load. Per-skill `enabled:`
+ * frontmatter is only the default; an entry here overrides it. Precedence:
+ * `disabled` wins over everything; otherwise if `enabled` is non-empty it acts
+ * as an allowlist; otherwise the frontmatter default applies. `loadAll: false`
+ * is the master switch that skips the loader entirely.
+ */
 export const SkillsConfig = z.object({
-  enabled: z.boolean().default(true),
+  loadAll: z.boolean().default(true),
+  enabled: z.array(z.string()).default([]),
+  disabled: z.array(z.string()).default([]),
   skillsDir: z.string().default('./skills'),
   runtimeClaudeSkillsDir: z.string().default('~/.mvpclaw/workspaces/default/.claude/skills'),
 });
@@ -183,6 +193,39 @@ export const LoggingConfig = z.object({
     .default(['TELEGRAM_BOT_TOKEN', 'OPENROUTER_API_KEY', 'ANTHROPIC_API_KEY', 'GEMINI_API_KEY']),
 });
 export type LoggingConfig = z.infer<typeof LoggingConfig>;
+
+/**
+ * Deploy-skill defaults. The `github-deploy` / `vercel-deploy` skills read
+ * these; no secrets live here (auth is the host `gh`/`vercel` CLI's concern).
+ */
+export const DeploysConfig = z.object({
+  github: z
+    .object({
+      enabled: z.boolean().default(true),
+      defaultVisibility: z.enum(['private', 'public']).default('private'),
+    })
+    .default({ enabled: true, defaultVisibility: 'private' }),
+  vercel: z
+    .object({
+      enabled: z.boolean().default(true),
+      defaultTarget: z.enum(['preview', 'production']).default('preview'),
+      scope: z.string().default(''),
+    })
+    .default({ enabled: true, defaultTarget: 'preview', scope: '' }),
+});
+export type DeploysConfig = z.infer<typeof DeploysConfig>;
+
+/**
+ * Email skill config — which `himalaya` account the skill drives. No secrets
+ * here; himalaya owns its own credential store. Empty `himalayaAccount` uses
+ * himalaya's configured default account.
+ */
+export const EmailConfig = z.object({
+  enabled: z.boolean().default(false),
+  himalayaAccount: z.string().default(''),
+  defaultPageSize: z.number().int().positive().default(10),
+});
+export type EmailConfig = z.infer<typeof EmailConfig>;
 
 /** The top-level config schema. */
 export const MvpClawConfig = z.object({
@@ -212,6 +255,8 @@ export const MvpClawConfig = z.object({
   gemini: GeminiConfig.default({} as never),
   mcp: McpConfig.default({} as never),
   skills: SkillsConfig.default({} as never),
+  deploys: DeploysConfig.default({} as never),
+  email: EmailConfig.default({} as never),
   proactive: ProactiveConfig.default({} as never),
   idle: IdleConfig.default({} as never),
   power: PowerConfig.default({} as never),

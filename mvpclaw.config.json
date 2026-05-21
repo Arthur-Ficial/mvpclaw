@@ -76,9 +76,20 @@
     }
   },
   "skills": {
-    "enabled": true,
+    "loadAll": true,
+    "enabled": [],
+    "disabled": [],
     "skillsDir": "./skills",
     "runtimeClaudeSkillsDir": "~/.mvpclaw/workspaces/default/.claude/skills"
+  },
+  "deploys": {
+    "github": { "enabled": true, "defaultVisibility": "private" },
+    "vercel": { "enabled": true, "defaultTarget": "preview", "scope": "" }
+  },
+  "email": {
+    "enabled": false,
+    "himalayaAccount": "",
+    "defaultPageSize": 10
   },
   "proactive": {
     "quietHours": {
