@@ -21,7 +21,8 @@ import {
 } from '../../app/index.js';
 import type { InboundMessage } from '../../channels/index.js';
 import { loadConfig } from '../../config/index.js';
-import { startTickLoop, installShutdownHandler } from '../../scheduler/index.js';
+import { TasksRepo } from '../../db/index.js';
+import { startTickLoop, installShutdownHandler, dispatchDueTasks } from '../../scheduler/index.js';
 import { exitConfig } from '../exit.js';
 import { commonArgs } from './_common.js';
 
@@ -83,16 +84,36 @@ export const startCmd = defineCommand({
       }
     })();
 
-    // ── Scheduler tick (1s) — keeps the loop alive for lease-refresh.
+    // ── On boot: reclaim any leases left dangling from a previous crash.
+    const recovered = TasksRepo.recoverLeases(ctx.db);
+    if (recovered > 0) {
+      log.info({ recovered }, 'scheduler: recovered expired task leases');
+    }
+
+    // ── Scheduler tick (1s) drives the dispatcher every 5s (cron min-resolution
+    // is 60s, but a faster cadence drains backlog after recovery without
+    // burning the CPU).
     const tick = startTickLoop({
-      tickMs: 1000,
+      tickMs: 5_000,
       sweepMs: 60_000,
-      onTick: () => {
-        // Lease-driven dispatcher integration lands when P11+ refactor binds
-        // it here; the tick proves the loop is healthy.
+      onTick: async () => {
+        try {
+          await dispatchDueTasks(ctx);
+        } catch (err) {
+          log.error({ err }, 'scheduler: dispatcher tick failed');
+        }
       },
       onSweep: () => {
-        // Lease-recovery sweep placeholder.
+        // Periodic safety-net: reclaim any leases whose 5-minute TTL expired
+        // (e.g. dispatcher crashed mid-turn).
+        try {
+          const n = TasksRepo.recoverLeases(ctx.db);
+          if (n > 0) {
+            log.info({ recovered: n }, 'scheduler: sweep reclaimed leases');
+          }
+        } catch (err) {
+          log.error({ err }, 'scheduler: sweep failed');
+        }
       },
     });
 

@@ -30,6 +30,7 @@ import {
   type SessionRow,
 } from '../db/index.js';
 import { parseSlashCommand } from '../channels/telegram.commands.js';
+import { engageKillswitch } from '../killswitch/index.js';
 
 /** The triple the orchestrator receives. */
 export interface ResolvedInbound {
@@ -112,6 +113,12 @@ export function routeInbound(db: Db, msg: InboundMessage, idle?: IdleConfig): Re
           text: reply,
         });
         isHandledCommand = true;
+        // /killswitch is a destructive command — engage it AFTER the reply
+        // row has been enqueued (the caller's drainOutbox will flush it
+        // before our 5s grace timer fires).
+        if (parsed.command === 'killswitch') {
+          engageKillswitch(`/killswitch from chat ${chat.id} (provider ${msg.providerChatId})`);
+        }
       }
     }
   }
@@ -146,6 +153,14 @@ function handleBuiltinCommand(command: string): string | null {
       return "New session started. Previous messages won't be sent to the model in future turns.";
     case 'skills':
       return 'Skills: research, debugging. Invoke a skill by prefixing your message with /skill-name.';
+    case 'killswitch':
+      return (
+        '🛑 *Killswitch engaged.* I am shutting down hard and the watchdog will NOT restart me.\n\n' +
+        'To revive from a terminal:\n' +
+        '`mvpclaw revive`\n\n' +
+        'Or manually:\n' +
+        '`rm ~/.mvpclaw/killswitch && launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.mvpclaw.daemon.plist`'
+      );
     default:
       return null;
   }

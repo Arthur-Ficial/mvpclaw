@@ -22,6 +22,7 @@ import { homedir } from 'node:os';
 import { resolve } from 'node:path';
 import type { ChatMessage, LoadedSkill } from '../agent/index.js';
 import { ChatMemoryRepo, type Db } from '../db/index.js';
+import { memoryComposerBlock } from '../memory/typed-memory.js';
 import type { ToolRegistry } from '../tools/index.js';
 
 /** Hardcoded L0 preamble (spec §30.1 2a). */
@@ -117,6 +118,15 @@ export function composePrompt(input: ComposeInput): ComposeOutput {
     sections.push(lines.join('\n'));
   }
   const afterToolDescriptions = sections.join('\n\n').length;
+
+  // 2c.5 Persistent typed memory (MEMORY.md + linked files). Always loaded
+  // at the top of the prompt — this is how the bot accumulates knowledge
+  // across sessions. Soft-capped at 8k chars; index is always included,
+  // linked bodies stop once the cap is reached.
+  const typed = memoryComposerBlock();
+  if (typed.length > 0) {
+    sections.push(`## Persistent memory\n\n${typed}`);
+  }
 
   // 2d. Project memory.
   const projPath = resolve(input.systemPromptFile);

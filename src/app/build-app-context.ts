@@ -32,7 +32,8 @@ import {
 import type { MvpClawConfigType } from '../config/index.js';
 import { applyMigrations, openDb, pathFromUrl } from '../db/index.js';
 import { makeLogger } from '../logging/index.js';
-import { registerMemoryTools } from '../memory/index.js';
+import { registerMemoryTools, registerTypedMemoryTools } from '../memory/index.js';
+import { registerTodoTools } from '../todos/index.js';
 import { loadSkillsFromDir, syncSkillsToWorkspace } from '../skills/index.js';
 import {
   createToolRegistry,
@@ -152,6 +153,8 @@ export function buildAppContext(
   registerExternalTools(tools, config, env);
   registerSchedulerTools(tools);
   registerMemoryTools(tools, { redactEnvNames: config.logging.redact });
+  registerTypedMemoryTools(tools);
+  registerTodoTools(tools);
   registerPowerTools(tools, config);
 
   const ctx: AppContext = {

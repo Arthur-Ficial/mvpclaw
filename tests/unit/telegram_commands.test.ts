@@ -76,7 +76,14 @@ describe('isBuiltinCommand', () => {
     expect(isBuiltinCommand('')).toBe(false);
   });
 
-  it('BUILTIN_COMMANDS lists the 5 names from the spec', () => {
-    expect([...BUILTIN_COMMANDS].sort()).toEqual(['help', 'new', 'skills', 'start', 'status']);
+  it('BUILTIN_COMMANDS lists the 6 names from the spec', () => {
+    expect([...BUILTIN_COMMANDS].sort()).toEqual([
+      'help',
+      'killswitch',
+      'new',
+      'skills',
+      'start',
+      'status',
+    ]);
   });
 });

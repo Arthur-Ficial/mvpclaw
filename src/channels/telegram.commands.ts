@@ -26,7 +26,7 @@ export interface ParsedCommand {
  * (e.g. `/research foo`) also pass through `parseSlashCommand` but are
  * routed via the skills layer rather than this list.
  */
-export const BUILTIN_COMMANDS = ['start', 'help', 'status', 'new', 'skills'] as const;
+export const BUILTIN_COMMANDS = ['start', 'help', 'status', 'new', 'skills', 'killswitch'] as const;
 export type BuiltinCommand = (typeof BUILTIN_COMMANDS)[number];
 
 /** Telegram bot-username pattern. Used to recognize `/command@BotName`. */

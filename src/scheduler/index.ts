@@ -12,3 +12,6 @@ export type { TickLoopOptions, TickLoopHandle } from './loop.js';
 export { canTransition, isTerminal } from './lifecycle.js';
 export { installShutdownHandler } from './shutdown.js';
 export type { ShutdownOptions } from './shutdown.js';
+export { dispatchDueTasks, buildSyntheticInbound } from './dispatcher.js';
+export type { DispatchOptions, DispatchResult, RunPipeline } from './dispatcher.js';
+export { parseCron, parseWhen } from './recurrence.js';

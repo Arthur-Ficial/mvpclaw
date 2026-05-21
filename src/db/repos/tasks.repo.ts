@@ -129,6 +129,24 @@ export function listTasks(db: Db, filters: TaskListFilters = {}): TaskRow[] {
 }
 
 /**
+ * Find tasks that are `scheduled` AND due to run (`next_run_at <= now`).
+ * Ordered oldest-due-first so backlog drains FIFO. Uses the
+ * `idx_tasks_due` index defined in migration 0003.
+ *
+ * @param db - The open SQLite handle.
+ * @param now - The reference timestamp (ms UTC). Defaults to `Date.now()`.
+ * @param limit - Maximum rows. Defaults to 16 — generous for one sweep.
+ * @returns Due tasks, ordered by `next_run_at` ascending.
+ */
+export function findDueTasks(db: Db, now: number = Date.now(), limit = 16): TaskRow[] {
+  return db
+    .prepare(
+      "SELECT * FROM tasks WHERE state = 'scheduled' AND next_run_at <= ? ORDER BY next_run_at ASC LIMIT ?",
+    )
+    .all(now, limit) as TaskRow[];
+}
+
+/**
  * Atomically transition a task `scheduled → running` (P12's dispatcher).
  *
  * @returns `true` if this caller won the lease; `false` if another did.

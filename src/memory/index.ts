@@ -6,3 +6,21 @@
  * human-facing CLI `mvpclaw memory clear` can shrink memory.
  */
 export { registerMemoryTools, MEMORY_LIMITS } from './memory-tools.js';
+export { registerTypedMemoryTools } from './typed-memory-tools.js';
+export {
+  memorySave,
+  memoryList,
+  memoryGet,
+  memoryDelete,
+  memoryComposerBlock,
+  memoryOrphans,
+  validateMemoryInput,
+  MEMORY_TYPES,
+} from './typed-memory.js';
+export type {
+  MemoryType,
+  MemoryRecord,
+  MemorySaveInput,
+  MemoryIndexEntry,
+  MemoryFrontmatter,
+} from './typed-memory.js';

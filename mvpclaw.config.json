@@ -32,7 +32,10 @@
     "command": "claude",
     "useOpenRouter": true,
     "outputFormat": "stream-json",
-    "allowedTools": ["Read", "mcp__mvpclaw-tools__*"],
+    "allowedTools": [
+      "Read",
+      "mcp__mvpclaw-tools__*"
+    ],
     "env": {
       "ANTHROPIC_BASE_URL": "https://openrouter.ai/api",
       "ANTHROPIC_AUTH_TOKEN": "${OPENROUTER_API_KEY}",
@@ -50,18 +53,27 @@
   "anthropic": {
     "enabled": true,
     "apiKeyEnv": "ANTHROPIC_API_KEY",
-    "webSearch": { "enabled": true, "maxUses": 5 }
+    "webSearch": {
+      "enabled": true,
+      "maxUses": 5
+    }
   },
   "gemini": {
     "enabled": true,
     "apiKeyEnv": "GEMINI_API_KEY",
     "model": "gemini-2.5-flash",
-    "tools": { "googleSearch": true, "urlContext": true }
+    "tools": {
+      "googleSearch": true,
+      "urlContext": true
+    }
   },
   "mcp": {
     "enabled": true,
     "servers": {},
-    "expose": { "toolsServer": true, "conversationsServer": true }
+    "expose": {
+      "toolsServer": true,
+      "conversationsServer": true
+    }
   },
   "skills": {
     "enabled": true,
@@ -69,8 +81,11 @@
     "runtimeClaudeSkillsDir": "~/.mvpclaw/workspaces/default/.claude/skills"
   },
   "proactive": {
-    "quietHours": { "start": "22:00", "end": "08:00" },
-    "maxPerChatPerDay": 6,
+    "quietHours": {
+      "start": "22:00",
+      "end": "08:00"
+    },
+    "maxPerChatPerDay": 3,
     "minGapSeconds": 900
   },
   "idle": {
@@ -80,6 +95,15 @@
   },
   "logging": {
     "level": "info",
-    "redact": ["TELEGRAM_BOT_TOKEN", "OPENROUTER_API_KEY", "ANTHROPIC_API_KEY", "GEMINI_API_KEY"]
+    "redact": [
+      "TELEGRAM_BOT_TOKEN",
+      "OPENROUTER_API_KEY",
+      "ANTHROPIC_API_KEY",
+      "GEMINI_API_KEY"
+    ]
+  },
+  "power": {
+    "enabled": true,
+    "telegramVideo": true
   }
 }
