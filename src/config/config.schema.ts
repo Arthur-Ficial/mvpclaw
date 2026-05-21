@@ -216,16 +216,45 @@ export const DeploysConfig = z.object({
 export type DeploysConfig = z.infer<typeof DeploysConfig>;
 
 /**
- * Email skill config — which `himalaya` account the skill drives. No secrets
- * here; himalaya owns its own credential store. Empty `himalayaAccount` uses
- * himalaya's configured default account.
+ * Email config — both the on-demand skill and the unattended channel.
+ *
+ * The `channel` block (disabled by default) turns email into a polled
+ * `ChannelAdapter` (IMAP via himalaya) so new mail flows into the bot like
+ * Telegram. The top-level fields configure the on-demand skill. No secrets
+ * here; himalaya owns its own credential store.
  */
 export const EmailConfig = z.object({
   enabled: z.boolean().default(false),
   himalayaAccount: z.string().default(''),
   defaultPageSize: z.number().int().positive().default(10),
+  channel: z
+    .object({
+      enabled: z.boolean().default(false),
+      account: z.string().default(''),
+      ownAddress: z.string().default(''),
+      pollIntervalSec: z.number().int().positive().default(120),
+    })
+    .default({ enabled: false, account: '', ownAddress: '', pollIntervalSec: 120 }),
 });
 export type EmailConfig = z.infer<typeof EmailConfig>;
+
+/** One channel identity in a link group: channel name + external id/address. */
+export const ChatRefSchema = z.object({
+  channel: z.string().min(1),
+  id: z.string().min(1),
+});
+
+/**
+ * A channel-link group — ties several identities into one shared session via
+ * its `primary` chat. Default config ships none; the owner adds a group linking
+ * their Telegram chat + email address to get a single cross-channel thread.
+ */
+export const LinkGroupSchema = z.object({
+  id: z.string().min(1),
+  primary: ChatRefSchema,
+  members: z.array(ChatRefSchema).min(1),
+});
+export type LinkGroup = z.infer<typeof LinkGroupSchema>;
 
 /** The top-level config schema. */
 export const MvpClawConfig = z.object({
@@ -257,6 +286,7 @@ export const MvpClawConfig = z.object({
   skills: SkillsConfig.default({} as never),
   deploys: DeploysConfig.default({} as never),
   email: EmailConfig.default({} as never),
+  links: z.array(LinkGroupSchema).default([]),
   proactive: ProactiveConfig.default({} as never),
   idle: IdleConfig.default({} as never),
   power: PowerConfig.default({} as never),

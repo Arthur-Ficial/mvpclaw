@@ -113,4 +113,38 @@ describe('config loader — env substitution + Zod validation', () => {
     expect(config.email.himalayaAccount).toBe('');
     expect(config.email.defaultPageSize).toBe(10);
   });
+
+  it('defaults the email channel disabled with a 120s poll interval', () => {
+    const path = join(tmp, 'cfg.json');
+    writeFileSync(path, JSON.stringify({}));
+    const config = loadConfig(path);
+    expect(config.email.channel.enabled).toBe(false);
+    expect(config.email.channel.pollIntervalSec).toBe(120);
+  });
+
+  it('defaults links to an empty array and parses a link group', () => {
+    const path = join(tmp, 'cfg.json');
+    writeFileSync(path, JSON.stringify({}));
+    expect(loadConfig(path).links).toEqual([]);
+
+    const path2 = join(tmp, 'cfg2.json');
+    writeFileSync(
+      path2,
+      JSON.stringify({
+        links: [
+          {
+            id: 'owner',
+            primary: { channel: 'telegram', id: '111' },
+            members: [
+              { channel: 'telegram', id: '111' },
+              { channel: 'email', id: 'me@example.com' },
+            ],
+          },
+        ],
+      }),
+    );
+    const cfg = loadConfig(path2);
+    expect(cfg.links[0]?.primary).toEqual({ channel: 'telegram', id: '111' });
+    expect(cfg.links[0]?.members).toHaveLength(2);
+  });
 });

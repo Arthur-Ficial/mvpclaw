@@ -89,8 +89,10 @@
   "email": {
     "enabled": false,
     "himalayaAccount": "",
-    "defaultPageSize": 10
+    "defaultPageSize": 10,
+    "channel": { "enabled": false, "account": "", "ownAddress": "", "pollIntervalSec": 120 }
   },
+  "links": [],
   "proactive": {
     "quietHours": {
       "start": "22:00",
