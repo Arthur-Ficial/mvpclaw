@@ -169,7 +169,7 @@ export const startCmd = defineCommand({
  * @param inbound - One inbound from a channel adapter.
  */
 async function handleInbound(ctx: AppContext, inbound: InboundMessage): Promise<void> {
-  const resolved = routeInbound(ctx.db, inbound, ctx.config.idle);
+  const resolved = routeInbound(ctx.db, inbound, ctx.config.idle, ctx.config.links);
   if (resolved.isDuplicate || resolved.isHandledCommand) {
     await drainOutbox(ctx, { chat_id: resolved.chat.id });
     return;

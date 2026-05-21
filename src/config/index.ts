@@ -16,5 +16,7 @@ export type {
   McpConfig,
   SkillsConfig,
   LoggingConfig,
+  EmailConfig,
+  LinkGroup,
 } from './config.schema.js';
 export { loadConfig, resolveConfigPath, substituteEnv } from './load-config.js';

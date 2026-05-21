@@ -18,7 +18,8 @@
  * traffic. Per the spec, command handlers do NOT call the model.
  */
 import type { InboundMessage } from '../channels/index.js';
-import type { IdleConfig } from '../config/index.js';
+import type { IdleConfig, LinkGroup } from '../config/index.js';
+import { resolvePrimaryChatRef } from '../links/index.js';
 import {
   ChatsRepo,
   MessagesRepo,
@@ -51,14 +52,28 @@ export interface ResolvedInbound {
  * @param msg - The normalised `InboundMessage` from the channel adapter.
  * @param idle - Optional idle config; enables auto-reset when the gap since
  *               the last message exceeds `autoResetAfterSeconds` (0 disables).
+ * @param links - Optional channel-link groups. A linked identity resolves to
+ *                its group's PRIMARY chat, so linked channels share one session.
+ *                Default `[]` = every chat keeps its own session (back-compat).
  * @returns A `ResolvedInbound` with `isDuplicate` / `isHandledCommand` flags.
  */
-export function routeInbound(db: Db, msg: InboundMessage, idle?: IdleConfig): ResolvedInbound {
-  // 1. Upsert chat.
+export function routeInbound(
+  db: Db,
+  msg: InboundMessage,
+  idle?: IdleConfig,
+  links: LinkGroup[] = [],
+): ResolvedInbound {
+  // 1. Resolve the session-owning chat. Linked identities (e.g. owner email +
+  //    telegram) map to the group PRIMARY so they share ONE session; the
+  //    inbound message below keeps its REAL provider for accurate per-channel
+  //    stats. `chat` (returned) is therefore the primary — the orchestrator
+  //    builds the agent context + default-reply target from it, and the
+  //    send_message tool finds the link group by matching it.
+  const primary = resolvePrimaryChatRef(msg.channel, msg.providerChatId, links);
   const chat = ChatsRepo.upsertChat(db, {
-    provider: msg.channel,
-    provider_chat_id: msg.providerChatId,
-    thread_id: msg.providerThreadId ?? null,
+    provider: primary.channel,
+    provider_chat_id: primary.id,
+    thread_id: primary.channel === msg.channel ? (msg.providerThreadId ?? null) : null,
     type: 'private',
   });
 

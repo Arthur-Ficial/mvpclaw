@@ -56,7 +56,7 @@ export async function sendInjectedMessage(
   msg: InboundMessage,
 ): Promise<SendOutcome> {
   const start = Date.now();
-  const resolved = routeInbound(ctx.db, msg);
+  const resolved = routeInbound(ctx.db, msg, undefined, ctx.config.links);
 
   // Duplicate: nothing more to do (the router still inserted/identified the row).
   if (resolved.isDuplicate) {

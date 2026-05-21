@@ -101,7 +101,7 @@ const runCmd = defineCommand({
         text,
         receivedAt: new Date().toISOString(),
       };
-      const resolved = routeInbound(built.ctx.db, inbound);
+      const resolved = routeInbound(built.ctx.db, inbound, undefined, built.ctx.config.links);
       if (resolved.isHandledCommand) {
         // The text was a built-in slash command — orchestrator wasn't called.
         writeOut({ status: 'command', note: 'text resolved to a built-in slash command' }, ctx);
