@@ -246,5 +246,5 @@ IMAP inbox ──himalaya poll──▶ EmailChannel.receive() ──InboundMess
    agent's context contains both; an unlinked chat stays isolated.
 3. The agent can reply to an inbound email via Telegram or via email, its choice.
 4. Email channel disabled by default → no behavior change for existing installs.
-5. `resolveThreadKey` + transport + channel mapping are unit-tested with no
+5. `resolvePrimaryChatRef` + transport + channel mapping are unit-tested with no
    network; `pnpm check` green.
