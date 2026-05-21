@@ -41,10 +41,10 @@ For the rest of this playbook, "Run X" means **execute X in automated mode, OR a
 
 ## Step 2 — Ask the user the install questions
 
-Ask all six questions in ONE message. Show defaults. Wait for all answers before continuing.
+Ask all questions in ONE message. Show defaults. Wait for all answers before continuing.
 
 ```
-I'll set up MVPClaw. Six quick questions:
+I'll set up MVPClaw. A few quick questions:
 
 1. Project name? (default: <current folder basename>)
 
@@ -63,6 +63,17 @@ I'll set up MVPClaw. Six quick questions:
 5. Telegram bot token? (paste it, or say "no" if you need to create one)
 
 6. OpenRouter API key? (paste it, or say "skip" to set it later)
+
+7. Your name? (the OWNER — the person this bot works for)
+
+8. Your email address? (the owner's email)
+
+9. Email channel? Add an email inbox the bot watches (optional, default: no)
+   a) no          — Telegram only (default)
+   b) yes         — give the himalaya account name + the inbox address the bot
+                    monitors. By default the bot reacts ONLY to mail FROM your
+                    owner email (above), and your email + Telegram become ONE
+                    thread.
 ```
 
 Record answers in memory; you'll write them to `.mvpclaw-install.json` at the end.
@@ -165,6 +176,31 @@ Copy `mvpclaw.config.example.json` → `mvpclaw.config.json`. Adjust based on Q4
 
 - If `openrouter` (default): leave `agent.provider = "openrouter"`.
 - If `claude-cli`: set `agent.provider = "claude-cli"`, ensure `claudeCli.useOpenRouter = true`.
+
+**Owner (Q7/Q8):** set `owner.name` + `owner.email` from the answers.
+
+**Email channel + linking (Q9 = yes):** this is where the ONE-THREAD link is wired
+(it is an install-time step, not runtime magic):
+
+1. Set `email.channel.enabled = true`, `email.channel.account = "<himalaya account name>"`,
+   `email.channel.ownAddress = "<the inbox address the bot monitors>"`.
+2. **Restrict to the owner:** set `email.channel.allowedFrom = ["<owner.email>"]` so the
+   bot reacts ONLY to mail from the owner.
+3. **Chain email + Telegram into one thread:** capture the owner's Telegram chat id
+   (ask them to DM the bot `/start`, then read it from `mvpclaw chat list`), and write a
+   link group:
+   ```json
+   "links": [{
+     "id": "owner",
+     "primary": { "channel": "telegram", "id": "<owner-telegram-chat-id>" },
+     "members": [
+       { "channel": "telegram", "id": "<owner-telegram-chat-id>" },
+       { "channel": "email", "id": "<owner.email>" }
+     ]
+   }]
+   ```
+4. Configure himalaya for the account (`himalaya account configure <name>`) — it owns its
+   own credentials; the bot never stores them.
 
 **Never embed secrets** in this file. It only references env vars (e.g. `${OPENROUTER_API_KEY}`).
 

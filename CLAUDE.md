@@ -114,6 +114,12 @@ Telegram is one `ChannelAdapter`; email is another. Email has two faces:
   SAME `himalaya` binary and feeds new mail into the bot like Telegram. Enable
   with `email.channel.{enabled,account,ownAddress,pollIntervalSec}`. OFF by default.
 
+**Owner + single thread.** `owner` (`{ name, email }`) is the person the bot works
+for. The INSTALL process wires the owner up: it sets `email.channel.allowedFrom =
+[owner.email]` (so the bot reacts ONLY to the owner's mail) and writes a `links`
+group chaining the owner's Telegram chat + email into ONE thread. Linking is an
+install-time step (written into config), not runtime derivation.
+
 **Channel links make it a single thread.** `links` in `mvpclaw.config.json` ties
 identities into one shared session, so the owner's Telegram + email are ONE
 conversation (the agent sees both, interleaved). Inbound from a linked identity

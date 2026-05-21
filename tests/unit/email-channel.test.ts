@@ -48,7 +48,13 @@ function controllableSleep() {
   return { sleep, release: () => release?.() };
 }
 
-const cfg = { enabled: true, account: 'work', ownAddress: 'me@example.com', pollIntervalSec: 120 };
+const cfg = {
+  enabled: true,
+  account: 'work',
+  ownAddress: 'me@example.com',
+  pollIntervalSec: 120,
+  allowedFrom: [],
+};
 
 describe('email channel', () => {
   it('maps an envelope to an InboundMessage and marks it seen after enqueue', async () => {

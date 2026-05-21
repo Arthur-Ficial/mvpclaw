@@ -114,12 +114,34 @@ describe('config loader — env substitution + Zod validation', () => {
     expect(config.email.defaultPageSize).toBe(10);
   });
 
-  it('defaults the email channel disabled with a 120s poll interval', () => {
+  it('defaults the email channel disabled with a 120s poll interval + empty allowlist', () => {
     const path = join(tmp, 'cfg.json');
     writeFileSync(path, JSON.stringify({}));
     const config = loadConfig(path);
     expect(config.email.channel.enabled).toBe(false);
     expect(config.email.channel.pollIntervalSec).toBe(120);
+    expect(config.email.channel.allowedFrom).toEqual([]);
+  });
+
+  it('defaults the owner to empty name + email', () => {
+    const path = join(tmp, 'cfg.json');
+    writeFileSync(path, JSON.stringify({}));
+    const config = loadConfig(path);
+    expect(config.owner).toEqual({ name: '', email: '' });
+  });
+
+  it('parses owner + an owner email allowlist', () => {
+    const path = join(tmp, 'cfg.json');
+    writeFileSync(
+      path,
+      JSON.stringify({
+        owner: { name: 'Sam', email: 'sam@example.com' },
+        email: { channel: { enabled: true, account: 'bot', allowedFrom: ['sam@example.com'] } },
+      }),
+    );
+    const config = loadConfig(path);
+    expect(config.owner).toEqual({ name: 'Sam', email: 'sam@example.com' });
+    expect(config.email.channel.allowedFrom).toEqual(['sam@example.com']);
   });
 
   it('defaults links to an empty array and parses a link group', () => {

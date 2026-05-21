@@ -233,10 +233,35 @@ export const EmailConfig = z.object({
       account: z.string().default(''),
       ownAddress: z.string().default(''),
       pollIntervalSec: z.number().int().positive().default(120),
+      /**
+       * Sender allowlist — when non-empty the channel ingests ONLY mail whose
+       * `From` is in this list (the install wires it to `[owner.email]` so the
+       * bot reacts only to the owner). Empty = react to everyone (minus the
+       * self-mail filter).
+       */
+      allowedFrom: z.array(z.string()).default([]),
     })
-    .default({ enabled: false, account: '', ownAddress: '', pollIntervalSec: 120 }),
+    .default({
+      enabled: false,
+      account: '',
+      ownAddress: '',
+      pollIntervalSec: 120,
+      allowedFrom: [],
+    }),
 });
 export type EmailConfig = z.infer<typeof EmailConfig>;
+
+/**
+ * The owner — the human who set the bot up, identified by name + email. The
+ * install process uses this to (a) restrict the email channel to the owner's
+ * mail (`email.channel.allowedFrom = [owner.email]`) and (b) write the link
+ * group chaining the owner's Telegram chat with their email into one thread.
+ */
+export const OwnerConfig = z.object({
+  name: z.string().default(''),
+  email: z.string().default(''),
+});
+export type OwnerConfig = z.infer<typeof OwnerConfig>;
 
 /** One channel identity in a link group: channel name + external id/address. */
 export const ChatRefSchema = z.object({
@@ -286,6 +311,7 @@ export const MvpClawConfig = z.object({
   skills: SkillsConfig.default({} as never),
   deploys: DeploysConfig.default({} as never),
   email: EmailConfig.default({} as never),
+  owner: OwnerConfig.default({ name: '', email: '' }),
   links: z.array(LinkGroupSchema).default([]),
   proactive: ProactiveConfig.default({} as never),
   idle: IdleConfig.default({} as never),

@@ -67,6 +67,16 @@ describe('email transport — listNew', () => {
     });
   });
 
+  it('with allowedFrom set, ingests ONLY mail from those senders (owner allowlist)', () => {
+    const { run } = fakeRunner([ENVELOPE_LIST_JSON, ENVELOPE_LIST_JSON]);
+    const t = createEmailTransport(run);
+    // ENVELOPE_LIST_JSON has alex@example.com + me@example.com (self).
+    const out = t.listNew('work', 'me@example.com', ['owner@example.com']);
+    expect(out).toHaveLength(0); // alex is not the owner → dropped
+    const out2 = t.listNew('work', 'me@example.com', ['alex@example.com']);
+    expect(out2.map((e) => e.from)).toEqual(['alex@example.com']);
+  });
+
   it('synthesizes a stable id when Message-ID is missing', () => {
     const noMsgId = JSON.stringify([
       { id: '7', subject: 'No id', from: { addr: 'x@example.com' }, date: '2026-05-21T09:00:00Z' },

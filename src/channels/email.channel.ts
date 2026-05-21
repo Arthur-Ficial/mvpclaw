@@ -22,6 +22,8 @@ export interface EmailChannelConfig {
   account: string;
   ownAddress: string;
   pollIntervalSec: number;
+  /** Sender allowlist (empty = all). Install wires this to `[owner.email]`. */
+  allowedFrom: string[];
 }
 
 /** Test seam: an injectable sleep (defaults to a real, abort-aware timer). */
@@ -86,7 +88,7 @@ export function createEmailChannel(
   async function pollLoop(): Promise<void> {
     while (!stopped) {
       try {
-        const fresh = transport.listNew(config.account, config.ownAddress);
+        const fresh = transport.listNew(config.account, config.ownAddress, config.allowedFrom);
         const uids: string[] = [];
         for (const env of fresh) {
           enqueue(toInbound(env));

@@ -37,7 +37,11 @@ export interface EmailEnvelope {
 
 /** The transport surface the email channel depends on. */
 export interface EmailTransport {
-  listNew(account: string, ownAddress: string): EmailEnvelope[];
+  /**
+   * List unseen mail, minus self-sent (`ownAddress`). When `allowedFrom` is
+   * non-empty, ONLY mail from those senders is returned (the owner allowlist).
+   */
+  listNew(account: string, ownAddress: string, allowedFrom?: string[]): EmailEnvelope[];
   send(account: string, to: string, subject: string, body: string, inReplyTo?: string): void;
   markSeen(account: string, uids: string[]): void;
 }
@@ -103,11 +107,16 @@ export function parseEnvelopeList(json: string, account: string): EmailEnvelope[
  */
 export function createEmailTransport(run: HimalayaRun = defaultRun): EmailTransport {
   return {
-    listNew(account, ownAddress) {
+    listNew(account, ownAddress, allowedFrom = []) {
       const r = run('himalaya', ['envelope', 'list', '-a', account, '-o', 'json', 'not', 'seen']);
       const all = parseEnvelopeList(r.stdout, account);
       // Self-mail loop guard: never re-ingest the bot's own sent copies.
-      return all.filter((e) => e.from !== ownAddress);
+      const notSelf = all.filter((e) => e.from !== ownAddress);
+      // Owner allowlist: when set, react ONLY to mail from these senders.
+      if (allowedFrom.length === 0) {
+        return notSelf;
+      }
+      return notSelf.filter((e) => allowedFrom.includes(e.from));
     },
     send(account, to, subject, body, inReplyTo) {
       const headers = ['-H', `To:${to}`, '-H', `Subject:${subject}`];
