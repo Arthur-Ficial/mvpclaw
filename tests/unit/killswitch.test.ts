@@ -11,6 +11,7 @@ import { join } from 'node:path';
 import {
   disengageKillswitch,
   isKillswitchActive,
+  killDaemon,
   killswitchPath,
   writeKillswitchSentinel,
 } from '../../src/killswitch/index.js';
@@ -50,5 +51,54 @@ describe('killswitch sentinel', () => {
   it('default killswitchPath points under ~/.mvpclaw/', () => {
     const def = killswitchPath();
     expect(def).toMatch(/\.mvpclaw\/killswitch$/);
+  });
+});
+
+describe('killDaemon (mvpclaw kill)', () => {
+  it('engages the sentinel and boots out the daemon via launchctl', () => {
+    const calls: Array<[string, string[]]> = [];
+    const r = killDaemon({
+      reason: 'manual stop via mvpclaw kill',
+      uid: '501',
+      plistPath: '/x/com.mvpclaw.daemon.plist',
+      sentinelOverride: sentinel,
+      spawnImpl: (cmd, a) => {
+        calls.push([cmd, a]);
+        return { status: 0 };
+      },
+    });
+    expect(isKillswitchActive(sentinel)).toBe(true);
+    expect(r.killswitchEngaged).toBe(true);
+    expect(r.bootedOut).toBe(true);
+    expect(r.ok).toBe(true);
+    expect(calls[0]?.[0]).toBe('/bin/launchctl');
+    expect(calls[0]?.[1]).toEqual(['bootout', 'gui/501', '/x/com.mvpclaw.daemon.plist']);
+  });
+
+  it('treats a not-loaded daemon (bootout non-zero) as already stopped, still ok', () => {
+    const r = killDaemon({
+      reason: 'x',
+      uid: '501',
+      plistPath: '/x.plist',
+      sentinelOverride: sentinel,
+      spawnImpl: () => ({ status: 3, stderr: 'Boot-out failed: 3: No such process' }),
+    });
+    expect(r.killswitchEngaged).toBe(true);
+    expect(r.bootedOut).toBe(false);
+    expect(r.alreadyStopped).toBe(true);
+    expect(r.ok).toBe(true);
+  });
+
+  it('engaging kill then revive (disengage) round-trips the sentinel', () => {
+    killDaemon({
+      reason: 'r',
+      uid: '1',
+      plistPath: '/p',
+      sentinelOverride: sentinel,
+      spawnImpl: () => ({ status: 0 }),
+    });
+    expect(isKillswitchActive(sentinel)).toBe(true);
+    expect(disengageKillswitch(sentinel)).toBe(true);
+    expect(isKillswitchActive(sentinel)).toBe(false);
   });
 });

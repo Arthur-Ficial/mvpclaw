@@ -60,7 +60,29 @@ mvpclaw config      # get / set / validate / diff
 mvpclaw doctor      # health check
 mvpclaw status      # current configured provider, DB stats, MCP reachability
 mvpclaw replay      # alias → agent replay
+mvpclaw start       # start the daemon (channel pollers + scheduler + outbox)
+mvpclaw kill        # stop the daemon + keep it down (engage killswitch)
+mvpclaw revive      # disengage killswitch + bootstrap the daemon back into launchd
 ```
+
+### Lifecycle is fully CLI-controllable (non-negotiable)
+
+The entire daemon lifecycle is driveable from Unix-style commands — no GUI, no
+manual `launchctl`. An AI managing this bot controls it end to end with:
+
+```
+install : ./scripts/install-daemon.sh   # load into launchd (KeepAlive + watchdog)
+start   : mvpclaw start                  # run in foreground (dev), or the daemon runs it
+observe : mvpclaw status                 # provider/DB/health   |  mvpclaw doctor
+stop    : mvpclaw kill                   # engage killswitch + launchctl bootout (stays down)
+restart : mvpclaw revive                 # disengage killswitch + re-bootstrap
+```
+
+`kill` writes the `~/.mvpclaw/killswitch` sentinel so the 5-minute watchdog and
+launchd `KeepAlive: true` will NOT resurrect the daemon — it is the one reliable
+"stay stopped" command. `revive` is its exact inverse. Every state transition is
+a single command with `--json` output and standard exit codes; keep it that way
+when adding lifecycle behavior.
 
 ## Your first task
 

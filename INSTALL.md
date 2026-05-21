@@ -2,6 +2,14 @@
 
 You are installing MVPClaw. Execute this playbook top to bottom. Each step is numbered. Do not skip steps. If a step fails, stop and surface the error — do not declare success.
 
+**Before you begin, READ the CLAUDE.md files** — they are the source of truth for how this project works and how YOU should operate it:
+
+- [`./CLAUDE.md`](./CLAUDE.md) — the project rules + the **complete CLI surface** and the **fully CLI-controllable daemon lifecycle** (`start` / `kill` / `revive` / `status`). You will use these commands to run and manage the bot after install.
+- [`./prompts/internal-agent/CLAUDE.md`](./prompts/internal-agent/CLAUDE.md) — the bot's own identity/runtime prompt.
+- [`./EXTENDING.md`](./EXTENDING.md) — how to add tools/skills/providers/channels/config.
+
+Do not treat install as finished until you can drive the lifecycle from the CLI per `./CLAUDE.md`.
+
 Default mode is **automated**: you run the shell commands. Lockdown mode (Step 1) writes a `install-commands.sh` instead — you generate files but never execute.
 
 ---

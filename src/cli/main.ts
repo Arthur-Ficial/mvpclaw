@@ -6,7 +6,7 @@
  * and is wired here. The CLI is the project's first-class, Unix-style surface —
  * see `CLAUDE.md` §"CLI-first / AI-steerable" for the contract.
  *
- * The 16 top-level sub-commands listed under `subCommands` below cover every
+ * The top-level sub-commands listed under `subCommands` below cover every
  * agent capability (per `ARCHITECTURE.md` §1bis). At Phase 1.3 most are stubs
  * that exit 3 with a clear "not yet implemented (ticket Cn / #m)" message;
  * later phases fill them in.
@@ -21,6 +21,7 @@ import { chatCmd } from './cmd/chat.cmd.js';
 import { configCmd } from './cmd/config.cmd.js';
 import { dbCmd } from './cmd/db.cmd.js';
 import { doctorCmd } from './cmd/doctor.cmd.js';
+import { killCmd } from './cmd/kill.cmd.js';
 import { mcpCmd } from './cmd/mcp.cmd.js';
 import { memoryCmd } from './cmd/memory.cmd.js';
 import { outboxCmd } from './cmd/outbox.cmd.js';
@@ -57,8 +58,9 @@ const main = defineCommand({
     doctor: doctorCmd,
     status: statusCmd,
     replay: replayCmd,
-    revive: reviveCmd,
     start: startCmd,
+    kill: killCmd,
+    revive: reviveCmd,
   },
 });
 
