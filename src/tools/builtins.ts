@@ -15,7 +15,7 @@
 import { readFileSync } from 'node:fs';
 import type { LoadedSkill } from '../agent/index.js';
 import type { MvpClawConfigType } from '../config/index.js';
-import { ChatsRepo, MessagesRepo, SessionsRepo } from '../db/index.js';
+import { ChatsRepo, MessagesRepo, OutboxRepo, SessionsRepo } from '../db/index.js';
 import type { ToolHandler } from './tool.js';
 import type { ToolRegistry } from './tool-registry.js';
 
@@ -39,6 +39,85 @@ export function registerBuiltinTools(registry: ToolRegistry, deps: BuiltinToolDe
   registry.register(readRecentMessagesTool());
   registry.register(listSkillsTool(deps.getSkills));
   registry.register(readSkillTool(deps.getSkills));
+  registry.register(sendMessageTool(deps.config));
+}
+
+/**
+ * `send_message` — reply on a LINKED channel of the current thread.
+ *
+ * In a single-thread bot the owner's Telegram + email are one conversation; this
+ * lets the agent answer a Telegram turn by emailing (or vice versa). It can only
+ * target channels linked to the active thread (the §6 safety guard), so the
+ * agent can never send to an arbitrary address. Enqueues an outbox row; the
+ * channel's `send()` delivers it. Registration is a no-op tool when no links
+ * are configured.
+ *
+ * @param config - Resolved config (reads `links`).
+ * @returns The tool handler.
+ */
+export function sendMessageTool(config: MvpClawConfigType): ToolHandler {
+  return {
+    definition: {
+      name: 'send_message',
+      description:
+        'Reply on a LINKED channel of the current conversation (e.g. answer here by sending an email, or vice versa). `channel` must be a channel linked to this thread; arbitrary recipients are not allowed.',
+      inputSchema: {
+        type: 'object',
+        required: ['channel', 'text'],
+        properties: {
+          channel: {
+            type: 'string',
+            description: 'Target channel linked to this thread (e.g. "email", "telegram").',
+          },
+          text: { type: 'string', minLength: 1 },
+        },
+      },
+      source: 'builtin',
+      enabled: config.links.length > 0,
+    },
+    async execute(
+      input,
+      execCtx,
+    ): Promise<{ ok: boolean; channel: string; providerChatId: string }> {
+      await Promise.resolve();
+      if (config.links.length === 0) {
+        throw new Error('send_message: no channel links are configured');
+      }
+      const p = input as { channel: string; text: string };
+      const myChannel = execCtx.channel ?? '';
+      const myId = execCtx.providerChatId ?? '';
+      const group = config.links.find(
+        (g) =>
+          (g.primary.channel === myChannel && g.primary.id === myId) ||
+          g.members.some((m) => m.channel === myChannel && m.id === myId),
+      );
+      if (!group) {
+        throw new Error(
+          `send_message: current chat (${myChannel}:${myId}) is not in any link group`,
+        );
+      }
+      const target = group.members.find((m) => m.channel === p.channel);
+      if (!target) {
+        throw new Error(`send_message: channel "${p.channel}" is not linked to this thread`);
+      }
+      const chat = ChatsRepo.upsertChat(execCtx.db, {
+        provider: target.channel,
+        provider_chat_id: target.id,
+        thread_id: null,
+        type: 'private',
+      });
+      OutboxRepo.enqueueOutbox(execCtx.db, {
+        chat_id: chat.id,
+        run_id: execCtx.runId ?? null,
+        provider: target.channel,
+        provider_chat_id: target.id,
+        provider_thread_id: null,
+        kind: 'text',
+        text: p.text,
+      });
+      return { ok: true, channel: target.channel, providerChatId: target.id };
+    },
+  };
 }
 
 // ─────────────────────────────── tools ───────────────────────────────

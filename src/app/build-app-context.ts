@@ -24,13 +24,16 @@ import {
 } from '../agent/index.js';
 import {
   createCliInjectChannel,
+  createEmailChannel,
   createTelegramChannel,
   type ChannelAdapter,
   type CliInjectChannel,
+  type EmailChannelAdapter,
   type TelegramChannelAdapter,
 } from '../channels/index.js';
 import type { MvpClawConfigType } from '../config/index.js';
 import { applyMigrations, openDb, pathFromUrl } from '../db/index.js';
+import { createEmailTransport } from '../email/index.js';
 import { makeLogger } from '../logging/index.js';
 import { registerMemoryTools, registerTypedMemoryTools } from '../memory/index.js';
 import { registerTodoTools } from '../todos/index.js';
@@ -51,6 +54,8 @@ export interface BuiltAppContext {
   cliInject: CliInjectChannel;
   /** Telegram channel if wired (token env set), otherwise null. */
   telegram: TelegramChannelAdapter | null;
+  /** Email channel if wired (email.channel.enabled + account set), otherwise null. */
+  email: EmailChannelAdapter | null;
 }
 
 /**
@@ -82,6 +87,14 @@ export function buildAppContext(
   if (config.telegram.enabled && typeof tgToken === 'string' && tgToken.length > 0) {
     telegram = createTelegramChannel(config.telegram, env);
     channels['telegram'] = telegram;
+  }
+
+  // Email channel: wire only when enabled + a himalaya account is configured.
+  // himalaya owns its own credentials, so no env-var key check here.
+  let email: EmailChannelAdapter | null = null;
+  if (config.email.channel.enabled && config.email.channel.account.length > 0) {
+    email = createEmailChannel(config.email.channel, createEmailTransport());
+    channels['email'] = email;
   }
 
   // Tool registry up front so providers can borrow the bridge below.
@@ -171,5 +184,5 @@ export function buildAppContext(
     skills,
   };
 
-  return { ctx, cliInject, telegram };
+  return { ctx, cliInject, telegram, email };
 }

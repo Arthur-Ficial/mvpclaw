@@ -95,7 +95,7 @@ describe('CLI feature coverage — every sub-command, end-to-end', () => {
     const list = runCli(['tool', 'list', '--source', 'builtin', '--json']);
     expect(list.status).toBe(0);
     const tools = JSON.parse(list.stdout) as Array<{ name: string }>;
-    expect(tools.length).toBe(27);
+    expect(tools.length).toBe(28);
 
     const describe = runCli(['tool', 'describe', 'mvpclaw_datetime', '--json']);
     expect(describe.status).toBe(0);

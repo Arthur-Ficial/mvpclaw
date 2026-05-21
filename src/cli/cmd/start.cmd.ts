@@ -57,6 +57,10 @@ export const startCmd = defineCommand({
         log.info('mvpclaw start: shutdown signal received');
         stopState.inboundStopped = true;
         stopState.outboxStopped = true;
+        // The email channel polls on a timer; its stop() aborts the sleep so
+        // shutdown does not block for up to pollIntervalSec. (Telegram unblocks
+        // via grammY internals; the email channel needs this explicit call.)
+        await built.email?.stop();
         shutdownResolve?.();
       },
     });
