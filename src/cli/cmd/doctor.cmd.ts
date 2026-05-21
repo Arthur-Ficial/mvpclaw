@@ -21,7 +21,7 @@
 import { defineCommand } from 'citty';
 import { spawnSync } from 'node:child_process';
 import { loadConfig } from '../../config/index.js';
-import { applyMigrations, openDb, pathFromUrl } from '../../db/index.js';
+import { applyMigrations, MessagesRepo, openDb, pathFromUrl } from '../../db/index.js';
 import { exitConfig } from '../exit.js';
 import { resolveOutputContext, writeOut } from '../output.js';
 import { commonArgs } from './_common.js';
@@ -78,7 +78,9 @@ function runChecks(args: Record<string, unknown>): { ok: boolean; checks: Check[
     return { ok: false, checks };
   }
 
-  // 3. SQLite + migrations.
+  // 3. SQLite + migrations (also capture telegram message activity).
+  let tgStats: { received: number; sent: number; total: number; lastAt: string | null } | null =
+    null;
   try {
     const dbPath = pathFromUrl(config.database.url);
     const db = openDb(dbPath);
@@ -86,6 +88,9 @@ function runChecks(args: Record<string, unknown>): { ok: boolean; checks: Check[
     const totalMigrations = (
       db.prepare('SELECT COUNT(*) AS c FROM schema_migrations').get() as { c: number }
     ).c;
+    if (config.telegram.enabled) {
+      tgStats = MessagesRepo.messageStats(db, 'telegram');
+    }
     db.close();
     checks.push({
       name: 'sqlite',
@@ -136,6 +141,17 @@ function runChecks(args: Record<string, unknown>): { ok: boolean; checks: Check[
           ? `${config.telegram.tokenEnv} set (looks valid)`
           : `${config.telegram.tokenEnv} missing or malformed`,
     });
+    // Informational activity stats (never fails doctor).
+    if (tgStats) {
+      checks.push({
+        name: 'telegram-activity',
+        ok: true,
+        severity: 'warn',
+        detail: `received ${tgStats.received}, sent ${tgStats.sent}, total ${tgStats.total}${
+          tgStats.lastAt ? `, last ${tgStats.lastAt}` : ' (no messages yet)'
+        }`,
+      });
+    }
   }
 
   // 6. Optional skill CLIs (warn-only — needed by the deploy/email skills).

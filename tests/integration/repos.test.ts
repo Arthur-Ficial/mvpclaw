@@ -125,6 +125,48 @@ describe('repos — round-trip CRUD against a real SQLite database', () => {
     expect(rows.map((r) => r.text)).toEqual(['m2', 'm3', 'm4']);
   });
 
+  it('messages: messageStats counts received/sent + last activity per provider', () => {
+    const chat = ChatsRepo.upsertChat(db, {
+      provider: 'telegram',
+      provider_chat_id: '1',
+      type: 'private',
+    });
+    const session = SessionsRepo.getOrCreateActiveSession(db, chat.id);
+    MessagesRepo.insertMessage(db, {
+      session_id: session.id,
+      direction: 'inbound',
+      provider: 'telegram',
+      provider_update_id: 'in-1',
+      text: 'hi',
+    });
+    MessagesRepo.insertMessage(db, {
+      session_id: session.id,
+      direction: 'inbound',
+      provider: 'telegram',
+      provider_update_id: 'in-2',
+      text: 'again',
+    });
+    MessagesRepo.insertMessage(db, {
+      session_id: session.id,
+      direction: 'outbound',
+      provider: 'telegram',
+      provider_update_id: 'out-1',
+      text: 'reply',
+    });
+
+    const all = MessagesRepo.messageStats(db);
+    expect(all.total).toBe(3);
+    expect(all.received).toBe(2);
+    expect(all.sent).toBe(1);
+    expect(all.lastAt).toMatch(/\d{4}-/);
+
+    const tg = MessagesRepo.messageStats(db, 'telegram');
+    expect(tg).toEqual(all);
+
+    const none = MessagesRepo.messageStats(db, 'discord');
+    expect(none).toEqual({ total: 0, received: 0, sent: 0, lastAt: null });
+  });
+
   it('agent_runs: full lifecycle queued → running → succeeded', () => {
     const chat = ChatsRepo.upsertChat(db, {
       provider: 'telegram',

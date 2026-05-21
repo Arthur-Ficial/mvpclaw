@@ -109,3 +109,43 @@ export function recentMessages(db: Db, sessionId: string, limit: number): Messag
     .all(sessionId, limit) as MessageRow[];
   return rows.reverse();
 }
+
+/** Aggregate message activity, optionally scoped to one provider (e.g. telegram). */
+export interface MessageStats {
+  /** Total messages stored (inbound + outbound). */
+  total: number;
+  /** Messages received from the channel (direction = 'inbound'). */
+  received: number;
+  /** Messages sent to the channel (direction = 'outbound'). */
+  sent: number;
+  /** ISO timestamp of the most recent message, or null when there are none. */
+  lastAt: string | null;
+}
+
+/**
+ * Compute received/sent/total counts and the last-activity timestamp.
+ *
+ * @param db - The open SQLite handle.
+ * @param provider - Optional channel filter (e.g. `'telegram'`). Omit for all.
+ * @returns A {@link MessageStats} snapshot.
+ */
+export function messageStats(db: Db, provider?: string): MessageStats {
+  const where = provider ? 'WHERE provider = ?' : '';
+  const params = provider ? [provider] : [];
+  const row = db
+    .prepare(
+      `SELECT
+         COUNT(*) AS total,
+         COALESCE(SUM(direction = 'inbound'), 0) AS received,
+         COALESCE(SUM(direction = 'outbound'), 0) AS sent,
+         MAX(created_at) AS lastAt
+       FROM messages ${where}`,
+    )
+    .get(...params) as { total: number; received: number; sent: number; lastAt: string | null };
+  return {
+    total: row.total,
+    received: row.received,
+    sent: row.sent,
+    lastAt: row.lastAt ?? null,
+  };
+}

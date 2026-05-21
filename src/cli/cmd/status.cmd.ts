@@ -6,6 +6,7 @@
  * in the output — only presence (`Yes` / `No`).
  */
 import { defineCommand } from 'citty';
+import { MessagesRepo } from '../../db/index.js';
 import { resolveOutputContext, writeOut } from '../output.js';
 import { withAppContext } from '../with-context.js';
 import { commonArgs } from './_common.js';
@@ -21,6 +22,7 @@ export const statusCmd = defineCommand({
     await withAppContext(args, (built) => {
       const config = built.ctx.config;
       const count = (sql: string): number => (built.ctx.db.prepare(sql).get() as { c: number }).c;
+      const tg = MessagesRepo.messageStats(built.ctx.db, 'telegram');
       writeOut(
         {
           provider: config.agent.provider,
@@ -31,6 +33,12 @@ export const statusCmd = defineCommand({
           providers: Object.keys(built.ctx.providers),
           telegramConfigured: process.env[config.telegram.tokenEnv] ? 'Yes' : 'No',
           openrouterConfigured: process.env[config.openrouter.apiKeyEnv] ? 'Yes' : 'No',
+          telegram: {
+            received: tg.received,
+            sent: tg.sent,
+            total: tg.total,
+            lastMessageAt: tg.lastAt,
+          },
           counts: {
             chats: count('SELECT COUNT(*) AS c FROM chats'),
             messages: count('SELECT COUNT(*) AS c FROM messages'),

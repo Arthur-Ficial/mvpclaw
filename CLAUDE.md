@@ -84,6 +84,26 @@ launchd `KeepAlive: true` will NOT resurrect the daemon — it is the one reliab
 a single command with `--json` output and standard exit codes; keep it that way
 when adding lifecycle behavior.
 
+### Observing messages + channel stats (for the AI)
+
+The whole conversation history and channel activity are inspectable from the CLI
+(no DB poking required):
+
+```
+mvpclaw chat list                      # all chats, most-recent first
+mvpclaw chat show <id> --limit 50      # FULL recent messages of one discussion
+                                       #   (direction + text + timestamp; not truncated)
+mvpclaw status --json                  # .telegram = { received, sent, total, lastMessageAt }
+                                       #   + .counts (chats/messages/agent_runs/outbox)
+mvpclaw doctor --json                  # includes a `telegram-activity` check:
+                                       #   "received N, sent M, total T, last <iso>"
+mvpclaw trace list / show <runId>      # per-run JSONL traces (what the agent did)
+```
+
+`status` and `doctor` read the counts from `MessagesRepo.messageStats(db, 'telegram')`
+(received = inbound, sent = outbound). Reuse that one function for any new
+message-stat surface — do not re-implement the SQL.
+
 ## Your first task
 
 Check whether the project is installed:
