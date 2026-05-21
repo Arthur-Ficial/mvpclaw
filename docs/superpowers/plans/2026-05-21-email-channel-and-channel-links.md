@@ -276,7 +276,7 @@ links: z.array(LinkGroupSchema).default([]),
 - [ ] **Step 1:** `pnpm check` green (typecheck + lint + format + build + unit + e2e).
 - [ ] **Step 2:** File sizes — every new file < 250 lines (`wc -l src/email/*.ts src/channels/email.channel.ts src/links/*.ts`).
 - [ ] **Step 3: link behavior proof (no network):** the `router-links` integration test (D1) is the authoritative proof linked identities share a session. Additionally run a cli-inject `mvpclaw send` smoke to confirm the pipeline still routes normally.
-- [ ] **Step 4: Secret scan** — `git grep -nIE "franz|fullstackoptimization|apfel|arthurficial|/Users/arthur"` → zero (configs use example.com / 111).
+- [ ] **Step 4: Secret scan** — run the project's identity-leak grep (the literals live only in the scrub tooling, not here) → expect zero hits (configs use example.com / 111).
 - [ ] **Step 5:** Push: `git push origin main`.
 
 ---

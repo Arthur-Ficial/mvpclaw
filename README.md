@@ -81,7 +81,8 @@ Everything that changes behavior lives in **`mvpclaw.config.json`**, validated b
 | `mcp` | MCP servers consumed + which internal servers are exposed |
 | `skills` | `loadAll` + `enabled[]` / `disabled[]` skill toggles |
 | `deploys` | `github` (visibility) + `vercel` (target/scope) defaults for the deploy skills |
-| `email` | himalaya account + page size for the email skill |
+| `email` | himalaya account + page size for the email skill; `email.channel` polls an inbox as a channel |
+| `links` | channel-link groups — tie identities (e.g. owner Telegram + email) into one shared thread |
 | `proactive` · `idle` | proactive-send policy; sliding-window / idle reset |
 | `power` | per-tool switches for the dangerous power tools |
 | `logging` | level + secret-redaction list |

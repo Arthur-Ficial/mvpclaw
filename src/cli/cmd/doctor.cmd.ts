@@ -190,6 +190,21 @@ function runChecks(args: Record<string, unknown>): { ok: boolean; checks: Check[
         : 'missing — needed for the email skill (brew install himalaya)',
     });
   }
+  if (config.email.channel.enabled) {
+    const hasHimalaya = onPath('himalaya');
+    const hasAccount = config.email.channel.account.length > 0;
+    checks.push({
+      name: 'email-channel',
+      ok: hasHimalaya && hasAccount,
+      severity: 'warn',
+      detail:
+        hasHimalaya && hasAccount
+          ? `polling account "${config.email.channel.account}" every ${config.email.channel.pollIntervalSec}s`
+          : !hasHimalaya
+            ? 'enabled but himalaya is not on PATH (brew install himalaya)'
+            : 'enabled but email.channel.account is empty (set it + configure himalaya)',
+    });
+  }
 
   // Warnings never fail doctor; only error-severity checks gate the exit code.
   const ok = checks.filter((c) => c.severity !== 'warn').every((c) => c.ok);

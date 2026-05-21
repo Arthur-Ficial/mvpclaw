@@ -115,11 +115,23 @@ implement `AgentProviderAdapter`.
 
 ## 4. Add a channel
 
-A channel is an inbound/outbound transport (Telegram today; CLI-injection for
-tests). Channels live in `src/channels/` and implement the `Channel` interface
-from `src/channels/channel.ts`.
+A channel is an inbound/outbound transport (Telegram + email today; CLI-injection
+for tests). Channels live in `src/channels/` and implement the `ChannelAdapter`
+interface from `src/channels/channel.ts`.
 
-**Recipe** (mirror `src/channels/telegram.channel.ts`):
+**`src/channels/email.channel.ts` is the worked example for a poll-based channel:**
+it drives the `himalaya` CLI through an injectable transport (`src/email/`), uses
+an abortable `stop()` so shutdown doesn't wait a poll interval, and dedups by the
+RFC `Message-ID`. Mirror it for any polled source (RSS, IMAP, a webhook queue).
+
+**Channel links + one shared thread:** `links` in config ties identities into one
+session (`src/links/resolvePrimaryChatRef`). The router maps a linked inbound to
+the group's `primary` chat, so e.g. email + Telegram become one conversation. The
+agent replies cross-channel via the `send_message` tool. To make a new channel
+linkable, nothing extra is needed — links key on `(channel, id)` generically.
+
+**Recipe** (mirror `src/channels/telegram.channel.ts` for push, or
+`email.channel.ts` for poll):
 
 1. Create `src/channels/<name>.channel.ts` implementing `Channel` — receive
    inbound messages, hand them to the router, and send outbound from the outbox.

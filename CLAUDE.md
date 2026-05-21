@@ -104,6 +104,39 @@ mvpclaw trace list / show <runId>      # per-run JSONL traces (what the agent di
 (received = inbound, sent = outbound). Reuse that one function for any new
 message-stat surface — do not re-implement the SQL.
 
+### Channels + channel links (email is both a skill AND a channel)
+
+Telegram is one `ChannelAdapter`; email is another. Email has two faces:
+
+- **Skill** (`skills/email/SKILL.md`) — on-demand: the agent runs `himalaya` when
+  asked ("check the billing inbox"). Works for any account.
+- **Channel** (`src/channels/email.channel.ts`) — unattended: polls IMAP via the
+  SAME `himalaya` binary and feeds new mail into the bot like Telegram. Enable
+  with `email.channel.{enabled,account,ownAddress,pollIntervalSec}`. OFF by default.
+
+**Channel links make it a single thread.** `links` in `mvpclaw.config.json` ties
+identities into one shared session, so the owner's Telegram + email are ONE
+conversation (the agent sees both, interleaved). Inbound from a linked identity
+resolves to the group's `primary` chat (`src/links/resolvePrimaryChatRef`); the
+message keeps its own `provider`. Unlinked senders stay isolated. Example:
+
+```json
+"links": [{
+  "id": "owner",
+  "primary": { "channel": "telegram", "id": "<your-chat-id>" },
+  "members": [
+    { "channel": "telegram", "id": "<your-chat-id>" },
+    { "channel": "email", "id": "you@example.com" }
+  ]
+}]
+```
+
+**Replying cross-channel:** the default reply goes to the originating (primary)
+channel; the agent can instead call the **`send_message({channel,text})`** tool to
+answer on any *linked* channel (e.g. reply to a Telegram turn by email). It can
+only target linked members — never an arbitrary address. `mvpclaw doctor` reports
+an `email-channel` readiness line when the channel is enabled.
+
 ## Your first task
 
 Check whether the project is installed:
