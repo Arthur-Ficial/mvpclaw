@@ -46,7 +46,7 @@
     "enabled": true,
     "apiKeyEnv": "OPENROUTER_API_KEY",
     "baseUrl": "https://openrouter.ai/api/v1",
-    "defaultModel": "anthropic/claude-haiku-4.5",
+    "defaultModel": "deepseek/deepseek-v4-flash",
     "enableServerTools": false,
     "serverTools": []
   },
