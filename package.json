@@ -4,6 +4,7 @@
   "private": true,
   "description": "Telegram-to-AI-agent bridge template. Clone, open with Claude Code, say 'make this work'.",
   "type": "module",
+  "packageManager": "pnpm@11.1.1",
   "engines": {
     "node": ">=24"
   },
