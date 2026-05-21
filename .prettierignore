@@ -9,6 +9,8 @@ coverage
 ARCHITECTURE.md
 CLAUDE.md
 README.md
+EXTENDING.md
+docs/
 pnpm-lock.yaml
 mvpclaw.config.json
 mvpclaw.config.example.json

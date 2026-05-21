@@ -1,0 +1,8 @@
+# Which dependencies are allowed to run install/build scripts.
+# better-sqlite3 + esbuild compile native/binary artifacts and MUST build.
+# @google/genai + protobufjs only print postinstall notices; no build needed.
+allowBuilds:
+  '@google/genai': false
+  better-sqlite3: true
+  esbuild: true
+  protobufjs: false
