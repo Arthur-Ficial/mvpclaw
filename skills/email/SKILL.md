@@ -8,6 +8,16 @@ enabled: true
 
 Email access via the `himalaya` CLI. Configured accounts (IMAP/SMTP) are managed outside the bot; this skill only invokes `himalaya` and formats the result.
 
+## Configuration (SSOT: `mvpclaw.config.json` → `email`)
+
+This skill reads its settings from the single config file — no separate setup inside the bot:
+
+- `email.enabled` (default `false`) — master flag. When `false`, decline email requests with a one-line note that email is disabled in config.
+- `email.himalayaAccount` (default `""`) — which himalaya account to drive. Empty uses himalaya's configured default account; otherwise pass `-a <account>` (e.g. `himalaya envelope list -a "$ACCOUNT"`) on every invocation.
+- `email.defaultPageSize` (default `10`) — how many envelopes `list`/`search` return when the user gives no count.
+
+The skill is also subject to the standard skill toggles (`skills.enabled` / `skills.disabled`); if `email` is in `skills.disabled` it never loads at all.
+
 ## Procedure
 
 1. Parse the user's intent into one of:
