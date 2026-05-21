@@ -12,6 +12,9 @@
  *   - openrouter:  API key env var set when the provider is enabled
  *   - claude-cli:  `claude --version` works when that provider is selected
  *   - telegram:    token env var set when telegram is enabled
+ *   - gh/vercel/himalaya: warn-only — optional CLIs the deploy/email skills
+ *     need; reported when the matching config feature is enabled. Warnings
+ *     never fail doctor.
  *
  * (MCP server reachability lands when P8 wires the MCP client.)
  */
@@ -23,11 +26,24 @@ import { exitConfig } from '../exit.js';
 import { resolveOutputContext, writeOut } from '../output.js';
 import { commonArgs } from './_common.js';
 
-/** Outcome of a single check. */
+/**
+ * Outcome of a single check. `severity: 'warn'` checks are informational —
+ * they never fail `doctor` (a missing optional CLI is not a broken install).
+ */
 interface Check {
   name: string;
   ok: boolean;
   detail: string;
+  severity?: 'error' | 'warn';
+}
+
+/**
+ * Probe whether an executable is on PATH (no shell, so the name can't be
+ * interpreted as a command). Returns true when `which <bin>` exits 0.
+ */
+function onPath(bin: string): boolean {
+  const r = spawnSync('/usr/bin/which', [bin], { encoding: 'utf8', timeout: 5000 });
+  return r.status === 0;
 }
 
 /** Build the full check list for the active config. */
@@ -122,7 +138,45 @@ function runChecks(args: Record<string, unknown>): { ok: boolean; checks: Check[
     });
   }
 
-  const ok = checks.every((c) => c.ok);
+  // 6. Optional skill CLIs (warn-only — needed by the deploy/email skills).
+  //    Each is reported only when its feature is enabled in config, so doctor
+  //    reflects what the operator actually turned on.
+  if (config.deploys.github.enabled) {
+    const ok = onPath('gh');
+    checks.push({
+      name: 'gh',
+      ok,
+      severity: 'warn',
+      detail: ok
+        ? 'on PATH (github-deploy ready)'
+        : 'missing — needed for the github-deploy skill (brew install gh)',
+    });
+  }
+  if (config.deploys.vercel.enabled) {
+    const ok = onPath('vercel');
+    checks.push({
+      name: 'vercel',
+      ok,
+      severity: 'warn',
+      detail: ok
+        ? 'on PATH (vercel-deploy ready)'
+        : 'missing — needed for the vercel-deploy skill (npm i -g vercel)',
+    });
+  }
+  if (config.email.enabled) {
+    const ok = onPath('himalaya');
+    checks.push({
+      name: 'himalaya',
+      ok,
+      severity: 'warn',
+      detail: ok
+        ? 'on PATH (email skill ready)'
+        : 'missing — needed for the email skill (brew install himalaya)',
+    });
+  }
+
+  // Warnings never fail doctor; only error-severity checks gate the exit code.
+  const ok = checks.filter((c) => c.severity !== 'warn').every((c) => c.ok);
   return { ok, checks };
 }
 
@@ -142,7 +196,7 @@ export const doctorCmd = defineCommand({
     }
     writeOut(result, ctx);
     if (!result.ok) {
-      const failed = result.checks.filter((c) => !c.ok).map((c) => c.name);
+      const failed = result.checks.filter((c) => !c.ok && c.severity !== 'warn').map((c) => c.name);
       process.stderr.write(
         `mvpclaw: doctor: ${failed.length} check(s) failed: ${failed.join(', ')}\n`,
       );
