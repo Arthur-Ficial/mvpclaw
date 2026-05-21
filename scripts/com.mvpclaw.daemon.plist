@@ -8,12 +8,12 @@
     <key>ProgramArguments</key>
     <array>
         <string>/opt/homebrew/bin/node</string>
-        <string>/Users/user/dev/mvpclaw/dist/cli/main.js</string>
+        <string>__REPO_ROOT__/dist/cli/main.js</string>
         <string>start</string>
     </array>
 
     <key>WorkingDirectory</key>
-    <string>/Users/user/dev/mvpclaw</string>
+    <string>__REPO_ROOT__</string>
 
     <key>EnvironmentVariables</key>
     <dict>
@@ -22,7 +22,7 @@
         <key>NODE_ENV</key>
         <string>development</string>
         <key>MVPCLAW_CONFIG</key>
-        <string>/Users/user/dev/mvpclaw/mvpclaw.config.json</string>
+        <string>__REPO_ROOT__/mvpclaw.config.json</string>
         <key>TZ</key>
         <string>Europe/Vienna</string>
     </dict>
@@ -42,10 +42,10 @@
     </dict>
 
     <key>StandardOutPath</key>
-    <string>/Users/user/dev/mvpclaw/data/daemon.stdout.log</string>
+    <string>__REPO_ROOT__/data/daemon.stdout.log</string>
 
     <key>StandardErrorPath</key>
-    <string>/Users/user/dev/mvpclaw/data/daemon.stderr.log</string>
+    <string>__REPO_ROOT__/data/daemon.stderr.log</string>
 
     <key>ProcessType</key>
     <string>Interactive</string>

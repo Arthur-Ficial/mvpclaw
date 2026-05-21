@@ -30,3 +30,6 @@ CLAUDE.local.md
 # mvpclaw.config.json     (committed; structure only, no secrets)
 # briefing/               (stays local; not in the repo per maintainer decision)
 briefing/
+
+# local operational state (never tracked)
+.mvpclaw-progress.json

@@ -20,14 +20,14 @@ afterEach(() => {
 
 describe('todos-store — add', () => {
   it('appends a row with ULID + ISO timestamp + source + text', () => {
-    const row = todoAdd('reply to Patrick', 'email', tmp);
+    const row = todoAdd('reply to Alex', 'email', tmp);
     expect(row.id).toMatch(/^[0-9A-HJKMNP-TV-Z]{26}$/);
     expect(row.source).toBe('email');
-    expect(row.text).toBe('reply to Patrick');
+    expect(row.text).toBe('reply to Alex');
     const onDisk = readFileSync(join(tmp, 'TODO.md'), 'utf8');
     expect(onDisk).toMatch(/^- \[/);
     expect(onDisk).toContain('[email]');
-    expect(onDisk).toContain('reply to Patrick');
+    expect(onDisk).toContain('reply to Alex');
   });
 
   it('rejects empty / overlong / multi-line text', () => {
@@ -53,14 +53,14 @@ describe('todos-store — list / done', () => {
 
   it('todoDone moves a row from TODO.md to DONE-TASKS.md with done@ marker', () => {
     const a = todoAdd('finish report', 'manual', tmp);
-    todoAdd('email Patrick', 'email', tmp);
+    todoAdd('email Alex', 'email', tmp);
     const done = todoDone(a.id, 'shipped via Cloudflare', tmp);
     expect(done?.id).toBe(a.id);
     expect(done?.note).toBe('shipped via Cloudflare');
     expect(done?.doneAt).toMatch(/^\d{4}-/);
     const open = todoList('open', tmp);
     expect(open).toHaveLength(1);
-    expect(open[0]?.text).toBe('email Patrick');
+    expect(open[0]?.text).toBe('email Alex');
     const finished = todoList('done', tmp);
     expect(finished).toHaveLength(1);
     expect(finished[0]?.id).toBe(a.id);

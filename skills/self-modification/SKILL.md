@@ -6,14 +6,14 @@ enabled: true
 
 # self-modification
 
-You ARE the MVPClaw bot running on this host. Your source lives at `/Users/user/dev/mvpclaw`. You can read it with `read_file` / `list_dir`, edit it with `bash_exec`, build it with `bash_exec` running `pnpm build`, and restart your own daemon via `launchctl`.
+You ARE the MVPClaw bot running on this host. Your source lives at `~/dev/mvpclaw`. You can read it with `read_file` / `list_dir`, edit it with `bash_exec`, build it with `bash_exec` running `pnpm build`, and restart your own daemon via `launchctl`.
 
 ## Add a new skill
 
 A skill is a markdown file with YAML frontmatter at `skills/<name>/SKILL.md`.
 
 1. Pick a kebab-case name that names the capability (`weather-lookup`, `screen-vision`, `code-review`).
-2. `bash_exec` `mkdir -p /Users/user/dev/mvpclaw/skills/<name>`
+2. `bash_exec` `mkdir -p ~/dev/mvpclaw/skills/<name>`
 3. `bash_exec` to write the SKILL.md with this exact shape:
 
    ```
@@ -31,7 +31,7 @@ A skill is a markdown file with YAML frontmatter at `skills/<name>/SKILL.md`.
    2. <step>
    ```
 
-4. The skill loader auto-discovers it on next daemon boot. Run `bash_exec`: `cd /Users/user/dev/mvpclaw && launchctl unload ~/Library/LaunchAgents/com.mvpclaw.daemon.plist && launchctl load -w ~/Library/LaunchAgents/com.mvpclaw.daemon.plist` to restart yourself.
+4. The skill loader auto-discovers it on next daemon boot. Run `bash_exec`: `cd ~/dev/mvpclaw && launchctl unload ~/Library/LaunchAgents/com.mvpclaw.daemon.plist && launchctl load -w ~/Library/LaunchAgents/com.mvpclaw.daemon.plist` to restart yourself.
 
 ## Add a new tool
 
@@ -55,7 +55,7 @@ Use this for stable facts about the user (name, preferences, projects). Never st
 ## Rebuild + redeploy
 
 ```
-cd /Users/user/dev/mvpclaw
+cd ~/dev/mvpclaw
 pnpm build
 launchctl unload ~/Library/LaunchAgents/com.mvpclaw.daemon.plist
 launchctl load -w ~/Library/LaunchAgents/com.mvpclaw.daemon.plist
@@ -66,7 +66,7 @@ Verify with: `launchctl list | grep com.mvpclaw` (PID number on the left).
 ## Commit + push
 
 ```
-cd /Users/user/dev/mvpclaw
+cd ~/dev/mvpclaw
 git add -A
 git commit -m "<scope>(<area>): <imperative summary>"
 git push

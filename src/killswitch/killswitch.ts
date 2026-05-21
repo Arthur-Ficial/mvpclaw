@@ -14,7 +14,7 @@
  *      caller's process doesn't sit waiting for launchd to take it down.
  *   3. `process.exit(0)` after a short grace period (caller controls).
  *
- * Reviving requires Owner at a terminal:
+ * Reviving requires the owner at a terminal:
  *
  *     rm ~/.mvpclaw/killswitch
  *     launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.mvpclaw.daemon.plist
@@ -66,7 +66,7 @@ export const DAEMON_LABEL = 'com.mvpclaw.daemon';
  *
  * The `bootout` removes the job from launchd entirely so its `KeepAlive: true`
  * cannot resurrect us. The watchdog, scheduled every 5 min, sees the sentinel
- * and refuses to bootstrap a new daemon until Owner revives.
+ * and refuses to bootstrap a new daemon until the owner revives.
  *
  * @param reason - Free-text reason, written into the sentinel.
  * @param graceMs - Milliseconds to wait before `process.exit`. Default 5000 —

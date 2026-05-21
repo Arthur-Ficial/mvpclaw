@@ -11,7 +11,7 @@
  * marker. This is "moved", not "deleted", so the history of completed work
  * stays visible in DONE-TASKS.md indefinitely.
  *
- * Plain markdown is the point: Owner can `cat TODO.md` from any terminal,
+ * Plain markdown is the point: the owner can `cat TODO.md` from any terminal,
  * and the bot's `bash_exec` (which `pwd`s into the workspace) can do the
  * same with no path prefix.
  */
@@ -21,7 +21,7 @@ import { dirname, join } from 'node:path';
 import { ulid } from 'ulid';
 
 /** Allowed `source` tags. Identifies where a TODO came from. */
-export const TODO_SOURCES = ['chat', 'email', 'scheduler', 'example-project', 'manual'] as const;
+export const TODO_SOURCES = ['chat', 'email', 'scheduler', 'project', 'manual'] as const;
 /** Source union type. */
 export type TodoSource = (typeof TODO_SOURCES)[number];
 

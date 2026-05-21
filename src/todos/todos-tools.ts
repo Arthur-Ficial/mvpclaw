@@ -24,7 +24,7 @@ function todoAddTool(): ToolHandler {
       description:
         'Append a new TODO to ~/.mvpclaw/workspaces/default/TODO.md. ' +
         'Use whenever something needs follow-up but you cannot finish it now (e.g. external dependency, ' +
-        'Owner needs to decide, you are throttled on proactive asks). text ≤ 280 chars, single line. ' +
+        'the owner needs to decide, you are throttled on proactive asks). text ≤ 280 chars, single line. ' +
         'source identifies where the todo came from.',
       inputSchema: {
         type: 'object',

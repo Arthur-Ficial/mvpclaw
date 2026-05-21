@@ -32,10 +32,25 @@ mkdir -p "${REPO_ROOT}/data"
 # Build a plist with secrets injected. We append to EnvironmentVariables
 # rather than relying on `source .env` at runtime, because launchd does NOT
 # read the user's shell rc files when starting a LaunchAgent.
+NODE_BIN="$(command -v node)"
 python3 - <<EOF
 import plistlib, os
+
+repo_root = "$REPO_ROOT"
+node_bin = "$NODE_BIN"
+
+# The template uses the __REPO_ROOT__ placeholder so it is machine-independent;
+# substitute the real clone path (and the detected node binary) at install time.
 with open("$TEMPLATE","rb") as f:
-    p = plistlib.load(f)
+    raw = f.read().decode("utf-8").replace("__REPO_ROOT__", repo_root)
+p = plistlib.loads(raw.encode("utf-8"))
+
+# Point at the node that is actually installed on this machine.
+args = p.get("ProgramArguments", [])
+if args and args[0] != node_bin and node_bin:
+    args[0] = node_bin
+    p["ProgramArguments"] = args
+
 env = p.get("EnvironmentVariables", {})
 for k in ("TELEGRAM_BOT_TOKEN","OPENROUTER_API_KEY","ANTHROPIC_API_KEY","GEMINI_API_KEY"):
     v = os.environ.get(k, "")
@@ -44,7 +59,7 @@ for k in ("TELEGRAM_BOT_TOKEN","OPENROUTER_API_KEY","ANTHROPIC_API_KEY","GEMINI_
 p["EnvironmentVariables"] = env
 with open("$PLIST_PATH","wb") as f:
     plistlib.dump(p, f)
-print(f"wrote {len(env)} env vars to $PLIST_PATH")
+print(f"wrote plist for {repo_root} with {len(env)} env vars to $PLIST_PATH")
 EOF
 
 # Unload if already present, then load.

@@ -12,7 +12,7 @@
  * validation errors to the agent verbatim.
  *
  * No SQLite involvement on purpose. Memory is plain markdown on disk so
- * Owner can `cat` and `git diff` it without any tooling.
+ * the owner can `cat` and `git diff` it without any tooling.
  */
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';

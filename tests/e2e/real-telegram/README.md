@@ -15,7 +15,7 @@ and sends ~10 real messages to a real chat.
 
 ## What it sends to
 
-Default chat id: `1234567890` (Owner's DM with the bot). Override with
+Default chat id: `1234567890` (the owner's DM with the bot). Override with
 `MVPCLAW_TEST_CHAT_ID` if you want it pointed somewhere else. Expect ~10
 messages and possibly one photo to land on the receiving end during a run.
 

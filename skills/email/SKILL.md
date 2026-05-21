@@ -13,7 +13,7 @@ Email access via the `himalaya` CLI. Configured accounts (IMAP/SMTP) are managed
 1. Parse the user's intent into one of:
    - **list**: "show inbox", "list emails", "what's new" → list the most recent envelopes.
    - **read**: "read email 573", "open message X" → show one full message.
-   - **search**: "find emails from Patrick", "search for invoice" → filter envelopes by query.
+   - **search**: "find emails from Alex", "search for invoice" → filter envelopes by query.
    - **mark-read**: "/email mark-read <id>", "mark 573 read" → clear unseen flag on one message.
    - **archive**: "/email archive <id>", "archive 573" → move one message out of INBOX into the archive (`[Gmail]/All Mail` on Gmail).
    - **delete**: "/email delete <id>", "delete 573" → move one message to Trash (recoverable; auto-purges after ~30 days on Gmail).
@@ -48,14 +48,14 @@ Email access via the `himalaya` CLI. Configured accounts (IMAP/SMTP) are managed
 List/search:
 ```
 Inbox (most recent 10):
-  573  Patrick Dainese       Re: Dr. Guru — kurzer …    2026-05-13
+  573  Alex Dainese       Re: Dr. Guru — kurzer …    2026-05-13
   570  GitHub                Actions: Windows hosted …  2026-05-12
   ...
 ```
 
 Read:
 ```
-From:    Patrick Dainese <patrick@example.com>
+From:    Alex Dainese <patrick@example.com>
 Date:    2026-05-13 09:57
 Subject: Re: Dr. Guru — kurzer Termin
 

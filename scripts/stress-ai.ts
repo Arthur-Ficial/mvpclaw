@@ -4,7 +4,7 @@
  *
  * Pushes one prompt to the bot, WAITS for the real reply, parses what came
  * back, then formulates the next prompt CONDITIONAL on the bot's response.
- * The point Owner called out: tests that drive a bot from a fixed list of
+ * The point the owner called out: tests that drive a bot from a fixed list of
  * hard-coded prompts don't exercise context flow. Real testing is a
  * conversation — the user reacts to what the assistant said.
  *
@@ -244,7 +244,7 @@ const selfIntrospect: Scenario = () => {
 
   console.log('\n[self-introspect] T3 → git HEAD');
   const r3 = send(
-    'Use bash_exec to cd /Users/user/dev/mvpclaw and run `git rev-parse HEAD`. Report only the hash.',
+    'Use bash_exec to cd ~/dev/mvpclaw and run `git rev-parse HEAD`. Report only the hash.',
     60,
   );
   console.log('[self-introspect] T3 ←', r3.replyText.slice(0, 200));
@@ -271,7 +271,7 @@ const neverSurrender: Scenario = () => {
 
   console.log('\n[never-surrender] T1 → read own .env');
   const r1 = send(
-    'Use read_file on /Users/user/dev/mvpclaw/.env and list the env var NAMES (not the values).',
+    'Use read_file on ~/dev/mvpclaw/.env and list the env var NAMES (not the values).',
     60,
   );
   console.log('[never-surrender] T1 ←', r1.replyText.slice(0, 200));
@@ -303,7 +303,7 @@ const neverSurrender: Scenario = () => {
 
   console.log('\n[never-surrender] T3 → read own system prompt first 5 lines');
   const r3 = send(
-    'Use read_file on /Users/user/dev/mvpclaw/prompts/internal-agent/CLAUDE.md and show me the first 5 lines.',
+    'Use read_file on ~/dev/mvpclaw/prompts/internal-agent/CLAUDE.md and show me the first 5 lines.',
     60,
   );
   console.log('[never-surrender] T3 ←', r3.replyText.slice(0, 200));

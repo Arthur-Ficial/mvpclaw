@@ -4,17 +4,17 @@
  * tasks that ship by default:
  *
  *   1. **email-check-30min** — every 30 minutes, scan unread email,
- *      apply learned `feedback` memory rules when present, ask Owner on
+ *      apply learned `feedback` memory rules when present, ask the owner on
  *      Telegram (3/day cap) when no rule applies, otherwise create
  *      `todo_add` rows and mark email as read.
  *
- *   2. **example-project-daily-vet** — every morning at 08:00 Europe/Vienna,
+ *   2. **example-daily-task** — every morning at 08:00 Europe/Vienna,
  *      spawn Claude Code inside `~/dev/example-project`, VET every open GitHub
  *      issue per the project's CLAUDE.md process, take maximum allowed
- *      action up to draft PR, and post a verdict table to Owner. A
+ *      action up to draft PR, and post a verdict table to the owner. A
  *      `RELEASE PROPOSAL` block triggers the hard-gate handshake — the
  *      spawned agent NEVER runs release/deploy commands without an
- *      explicit `release: approved <version>` reply from Owner.
+ *      explicit `release: approved <version>` reply from the owner.
  *
  * The script keys idempotency off the first line of each prompt: a
  * `# task-marker: <name>` header. If a non-terminal task with that
@@ -52,35 +52,35 @@ const TASKS: readonly DefaultTaskSpec[] = [
       'Step 1: `memory_list` and scan for any `feedback` rules whose description matches "email" or sender patterns you might encounter. Keep that list in mind.',
       'Step 2: Invoke the `email` skill with the equivalent of `himalaya envelope list "flag:unseen"`. For each unread:',
       '  a. Read sender, subject, first 200 chars of body.',
-      '  b. Does a `feedback` memory apply? `memory_get <slug>` to confirm. If yes, apply the stored rule (archive, draft reply, todo), mark the email read, continue to the next email. DO NOT ask Owner.',
-      '  c. If no rule applies AND the sender is EXTERNAL (not @example.com): send Owner ONE Telegram message: "📧 Email from <sender> re <subject>. What to do?" Then STOP this run — wait for his next message. Do not mark the email as read.',
+      '  b. Does a `feedback` memory apply? `memory_get <slug>` to confirm. If yes, apply the stored rule (archive, draft reply, todo), mark the email read, continue to the next email. DO NOT ask the owner.',
+      '  c. If no rule applies AND the sender is EXTERNAL (not @example.com): send the owner ONE Telegram message: "📧 Email from <sender> re <subject>. What to do?" Then STOP this run — wait for his next message. Do not mark the email as read.',
       '  d. If no rule applies AND the sender is INTERNAL (@example.com): create a TODO via `todo_add` ("[email] reply to <sender> re <subject>", source="email") and mark the email read.',
-      'Step 3: When Owner answers the question from (c) in a later turn, save his decision as a `memory_save` of type "feedback" keyed on the sender/subject pattern (slug like "email-from-acme-billing"). Then the next firing of THIS task will apply that rule automatically.',
+      'Step 3: When the owner answers the question from (c) in a later turn, save his decision as a `memory_save` of type "feedback" keyed on the sender/subject pattern (slug like "email-from-acme-billing"). Then the next firing of THIS task will apply that rule automatically.',
       '',
-      'Throttle: you may post AT MOST 3 ask-Owner messages per day across all firings (the proactive policy enforces this). If throttled, create a TODO instead of asking.',
+      'Throttle: you may post AT MOST 3 ask-the owner messages per day across all firings (the proactive policy enforces this). If throttled, create a TODO instead of asking.',
       '',
       'Silence is the success signal — if there is nothing unread, produce no output and finish.',
     ].join('\n'),
   },
   {
-    marker: 'example-project-daily-vet',
+    marker: 'example-daily-task',
     kind: 'recurring',
     cron: '0 8 * * *',
     timezone: 'Europe/Vienna',
     prompt: [
-      '# task-marker: example-project-daily-vet',
+      '# task-marker: example-daily-task',
       '',
       'You are firing as the morning example-project triage routine.',
       '',
-      'Step 1: `claude_spawn` with cwd="/Users/user/dev/example-project" and continueSession=true. Prompt the spawned Claude Code with:',
+      'Step 1: `claude_spawn` with cwd="~/dev/example-project" and continueSession=true. Prompt the spawned Claude Code with:',
       '',
       '"""',
-      'Read /Users/user/dev/example-project/CLAUDE.md sections "MVPClaw Daily Triage Gate" and "Handling GitHub Issues" — that is your contract. Then `gh issue list --state open --repo Arthur-Ficial/example-project --json number,title,labels,createdAt,body`. For each issue, VET against the 5-step process (alignment, reproducibility, TDD-first, golden-goal-alignment, release-gate). Take the maximum allowed action up to and including: comment, label, close-as-noise, OPEN A DRAFT PR WITH TESTS. Do NOT under any circumstance run release commands (`make release`, `gh release create`, `git tag v*`, `make publish`, `brew bump-formula-pr`, or any push to main). At the end, emit a markdown table with columns: number | title | action-taken | next-step. If any issue is release-worthy, emit a separate `RELEASE PROPOSAL` block at the end with version + changelog.',
+      'Read ~/dev/example-project/CLAUDE.md sections "MVPClaw Daily Triage Gate" and "Handling GitHub Issues" — that is your contract. Then `gh issue list --state open --repo youruser/example-project --json number,title,labels,createdAt,body`. For each issue, VET against the 5-step process (alignment, reproducibility, TDD-first, golden-goal-alignment, release-gate). Take the maximum allowed action up to and including: comment, label, close-as-noise, OPEN A DRAFT PR WITH TESTS. Do NOT under any circumstance run release commands (`make release`, `gh release create`, `git tag v*`, `make publish`, `brew bump-formula-pr`, or any push to main). At the end, emit a markdown table with columns: number | title | action-taken | next-step. If any issue is release-worthy, emit a separate `RELEASE PROPOSAL` block at the end with version + changelog.',
       '"""',
       '',
       'Step 2: Receive the markdown table. Post it verbatim to the Telegram chat via the normal reply path.',
-      'Step 3: If a `RELEASE PROPOSAL` block is present, post it as a SEPARATE Telegram message starting with the literal string `RELEASE PROPOSAL`. Then STOP this run — do nothing further. Owner replies with `release: approved <version>` or `release: rejected`; the next firing of this task picks up his decision.',
-      'Step 4: For every "proceed" verdict in the table, call `todo_add` with source="example-project" so the work survives the daemon restarting.',
+      'Step 3: If a `RELEASE PROPOSAL` block is present, post it as a SEPARATE Telegram message starting with the literal string `RELEASE PROPOSAL`. Then STOP this run — do nothing further. the owner replies with `release: approved <version>` or `release: rejected`; the next firing of this task picks up his decision.',
+      'Step 4: For every "proceed" verdict in the table, call `todo_add` with source="project" so the work survives the daemon restarting.',
     ].join('\n'),
   },
 ] as const;

@@ -5,7 +5,7 @@
  *   - `TODO.md`       — open items, append-only via `todo_add`
  *   - `DONE-TASKS.md` — closed items, append-only via `todo_done`
  *
- * Both are plain markdown so Owner can read them from any terminal without
+ * Both are plain markdown so the owner can read them from any terminal without
  * tools, and the bot can `bash_exec cat TODO.md` from its workspace pwd.
  */
 export {

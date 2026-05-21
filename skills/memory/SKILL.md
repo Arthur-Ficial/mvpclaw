@@ -46,7 +46,7 @@ The Why/How requirement is checked by the `memory_save` tool — saves that omit
 Short kebab-case, scoped to topic. Examples:
 
 - `email-from-acme-corp-billing` (feedback)
-- `example-project-release-gate` (project)
+- `example-release-gate` (project)
 - `inkblot-status-dashboard` (reference)
 - `owner-prefers-bundled-prs` (user)
 
@@ -64,4 +64,4 @@ The index is the source of truth — files on disk that aren't in the index are 
 
 - Don't save what's already documented in `CLAUDE.md` (project rules) or `prompts/internal-agent/CLAUDE.md` (your identity).
 - Don't save ephemeral state — in-flight task progress belongs in `todo_add`, not memory.
-- Don't save Owner's secrets — the memory dir is plain text and `git diff`-able.
+- Don't save the owner's secrets — the memory dir is plain text and `git diff`-able.
