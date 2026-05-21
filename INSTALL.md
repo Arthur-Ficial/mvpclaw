@@ -49,8 +49,8 @@ I'll set up MVPClaw. Six quick questions:
    b) docker      — also generate docker-compose setup
 
 4. Agent provider?
-   a) claude-cli  — Claude Code CLI bridge via OpenRouter (default)
-   b) openrouter  — direct OpenRouter API
+   a) openrouter  — direct OpenRouter API (default, recommended)
+   b) claude-cli  — Claude Code CLI bridge (routes through OpenRouter)
 
 5. Telegram bot token? (paste it, or say "no" if you need to create one)
 
@@ -155,8 +155,8 @@ Verify `.env` is in `.gitignore`. If not, add it.
 
 Copy `mvpclaw.config.example.json` → `mvpclaw.config.json`. Adjust based on Q4:
 
-- If `claude-cli`: leave `agent.provider = "claude-cli"`, ensure `claudeCli.useOpenRouter = true`.
-- If `openrouter`: set `agent.provider = "openrouter"`.
+- If `openrouter` (default): leave `agent.provider = "openrouter"`.
+- If `claude-cli`: set `agent.provider = "claude-cli"`, ensure `claudeCli.useOpenRouter = true`.
 
 **Never embed secrets** in this file. It only references env vars (e.g. `${OPENROUTER_API_KEY}`).
 
@@ -360,7 +360,7 @@ Example `install-commands.sh`:
 set -euo pipefail
 
 # MVPClaw install — generated <ISO 8601 UTC>
-# Mode: independent, local, claude-cli provider
+# Mode: independent, local, openrouter provider
 
 # Step 4 — Git identity (independent mode)
 git remote remove origin

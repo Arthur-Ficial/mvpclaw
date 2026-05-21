@@ -35,7 +35,7 @@ export type TelegramConfig = z.infer<typeof TelegramConfig>;
 
 /** Agent provider config block (which provider, timeouts, history caps). */
 export const AgentConfig = z.object({
-  provider: AgentProviderName.default('claude-cli'),
+  provider: AgentProviderName.default('openrouter'),
   timeoutMs: z.number().int().positive().default(180_000),
   maxHistoryMessages: z.number().int().nonnegative().default(20),
   maxToolRounds: z.number().int().positive().default(8),
