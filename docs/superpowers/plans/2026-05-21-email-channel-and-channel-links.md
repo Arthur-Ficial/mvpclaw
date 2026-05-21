@@ -156,14 +156,17 @@ links: z.array(LinkGroupSchema).default([]),
 
 **Files:** Create `src/email/transport.ts`, `src/email/index.ts`; Test `tests/unit/email-transport.test.ts`.
 
-- [ ] **Step 1: Failing test.** Inject a fake runner `run(cmd, args) → {stdout, status}`. Cases:
-  - `listNew(account, ownAddress)` runs `himalaya envelope list -a <account> --query "unseen" -o json`, parses JSON, returns `{ id (Message-ID), from, subject, body, internalDate }[]`, and FILTERS OUT envelopes whose `from` === `ownAddress` (self-mail).
+- [ ] **Step 1: Failing test.** Inject a fake runner `run(cmd, args, input?) → {stdout, status}` that RECORDS each call. Cases:
+  - `listNew(account, ownAddress)` runs `himalaya envelope list -a <account> --query "<unseen-query>" -o json`, parses JSON, returns `{ id (Message-ID), from, subject, body, internalDate }[]`, and FILTERS OUT envelopes whose `from` === `ownAddress` (self-mail). (Verify the exact unseen-filter token against `himalaya envelope list --help` during impl — likely `not seen` / `unseen`; the test fixture drives the JSON shape, the argv assertion uses whatever token impl confirms.)
   - missing Message-ID → synthesize `account:uid:date` fallback id (assert non-empty).
-  - `send(account, to, subject, body, inReplyTo?)` runs the himalaya template-write|send pipeline with the right argv.
+  - `send(...)` issues TWO recorded calls (see Step 3 — pipe is modeled as two spawns).
   - `markSeen(account, ids)` runs `himalaya flag add <ids> seen`.
   Provide a fixture JSON mirroring himalaya's `-o json` envelope shape (see `skills/email/SKILL.md` for the command forms).
 - [ ] **Step 2: Run, fail.**
-- [ ] **Step 3: Implement** `src/email/transport.ts` with a `HimalayaRun` type (`(cmd: string, args: string[]) => { stdout: string; status: number | null }`, default a `spawnSync` wrapper with NO shell). Keep pure JSON parsing in a separate helper from the I/O so parsing is unit-testable. < 250 lines.
+- [ ] **Step 3: Implement** `src/email/transport.ts`.
+  - **Runner type:** `HimalayaRun = (cmd: string, args: string[], input?: string) => { stdout: string; status: number | null }`. Default impl = `spawnSync(cmd, args, { input, encoding: 'utf8' })` — **NO shell, NO pipe, NEVER `child_process.exec`** (the repo hook blocks it, and house style is no-shell `spawnSync`).
+  - **`send` is a SHELL PIPE in the skill** (`himalaya template write -H ... <body> | himalaya message send`) — you CANNOT express `|` in a no-shell spawn. Model it as **two spawns chained via stdin**: (1) `run('himalaya', ['template','write','-H','To:'+to,'-H','Subject:'+subject, body, '-a', account, ...inReplyToHeaders])` → capture `stdout`; (2) `run('himalaya', ['message','send','-a',account], /* input: */ step1.stdout)`. Reply threads `-H 'In-Reply-To:<msgId>'` in step 1.
+  - Keep pure JSON parsing in a separate helper from the I/O so parsing is unit-testable. < 250 lines.
 - [ ] **Step 4: Pass.**
 - [ ] **Step 5: Commit** — `feat(email): himalaya transport (listNew/send/markSeen), injectable runner`.
 
@@ -196,17 +199,18 @@ links: z.array(LinkGroupSchema).default([]),
 - [ ] **Step 1: Failing integration test** (real in-memory db + migrations):
   - With `links` linking telegram `111` + email `me@example.com`: route an inbound telegram msg (chat 111) and an inbound email msg (sender `me@example.com`); assert BOTH resolve to the SAME session id.
   - An UNLINKED email (`stranger@x.com`) routes to its OWN session (different id).
-  - `/new` / idle-reset on the linked email acts on the primary (telegram) session.
+  - **Assert `resolved.chat` of the linked-email route is the PRIMARY (telegram 111) chat**, while the stored inbound message keeps `provider='email'`.
+  - `/new` / idle-reset on the linked email acts on the primary session.
 - [ ] **Step 2: Run, fail.**
-- [ ] **Step 3: Implement.** `routeInbound` accepts the `links` config. Compute `const primary = resolvePrimaryChatRef(msg.channel, msg.providerChatId, links)`. Keep `upsertChat` + message dedup on the REAL inbound identity. For session-scoped ops (`getOrCreateActiveSession`, idle-reset gap check, `closeActiveSessions`/`/new`), `upsertChat` the PRIMARY identity and use ITS chat id. Add a TSDoc note on the identity-vs-thread split.
+- [ ] **Step 3: Implement.** `routeInbound` takes the `links` config. Compute `primary = resolvePrimaryChatRef(msg.channel, msg.providerChatId, links)`. **Two chat rows:** `upsertChat` the REAL inbound identity (for message dedup + `messages.provider` accuracy), AND `upsertChat` the PRIMARY identity. **Critical:** the returned `ResolvedInbound.chat` and `.session` MUST be the PRIMARY chat's — the orchestrator builds the agent exec-context and the default-reply target from `resolved.chat`, and `send_message` (F1) finds the link group by matching that. Session-scoped ops (`getOrCreateActiveSession`, idle gap, `closeActiveSessions`/`/new`) all use the primary chat id. The inbound `message` row is inserted under the primary session but with its own `provider`. TSDoc the identity-vs-thread split.
 - [ ] **Step 4: Pass + full `pnpm check`** (router is core).
 - [ ] **Step 5: Commit** — `feat(router): link-aware session resolution`.
 
 ### Task D2: Thread `links` through callers
 
-**Files:** Modify `src/app/build-app-context.ts` and every `routeInbound(` call site (grep it — dispatcher / orchestrator path).
+**Files:** all four `routeInbound(` call sites (verified by grep): `src/scheduler/dispatcher.ts:93`, `src/cli/cmd/start.cmd.ts:172`, `src/cli/cmd/agent.cmd.ts:104`, `src/app/send-message.ts:59`, plus 3 call sites in `tests/integration/orchestrator_e2e.test.ts`.
 
-- [ ] **Step 1:** Pass `config.links` to each `routeInbound` call. Default `[]` keeps current behavior.
+- [ ] **Step 1:** Add `links` to `routeInbound`'s signature. Note `send-message.ts` and `agent.cmd.ts` currently call it WITHOUT the optional `idle` arg — so add `links` as a trailing **optional** param (default `[]`) to keep all sites compiling; pass `config.links` from the sites that have config. Default `[]` keeps current behavior.
 - [ ] **Step 2: Full gate** `pnpm check` → PASS.
 - [ ] **Step 3: Commit** — `feat(router): wire config.links into routing`.
 
@@ -218,8 +222,8 @@ links: z.array(LinkGroupSchema).default([]),
 
 **Files:** Modify `src/app/build-app-context.ts`, `src/cli/cmd/start.cmd.ts`.
 
-- [ ] **Step 1:** In `build-app-context.ts`, after telegram wiring: if `config.email.channel.enabled` AND `config.email.channel.account` non-empty, `channels['email'] = createEmailChannel(config.email.channel, transport)`. Keep a typed handle for shutdown.
-- [ ] **Step 2:** In `start.cmd.ts` shutdown path, call the email channel's `stop()` (mirror how telegram's stop is invoked — grep it).
+- [ ] **Step 1:** In `build-app-context.ts`, after telegram wiring: if `config.email.channel.enabled` AND `config.email.channel.account` non-empty, `channels['email'] = createEmailChannel(config.email.channel, transport)`. **Return the email-channel handle from the context** (like the existing `telegram` handle at `build-app-context.ts:174`) so shutdown can reach it.
+- [ ] **Step 2:** **NEW shutdown wiring (no existing precedent to copy).** `start.cmd.ts` today only sets `stopState.inboundStopped = true` and breaks after the next yield — it does NOT call `telegram.stop()` (Telegram's long-poll unblocks via grammY internals; a 120s email sleep will NOT). So in `start.cmd.ts`'s shutdown/drain callback, explicitly call `built.email?.stop()`. This is the abortable-shutdown requirement from spec §4.2.
 - [ ] **Step 3:** Manual smoke (no creds): email.channel.enabled=false → `mvpclaw status` channels excludes email; enabled=true + fake account → `status` lists `email` and the process does not crash (poll errors are logged). Capture output.
 - [ ] **Step 4: Full gate.**
 - [ ] **Step 5: Commit** — `feat(app): wire email channel into context + shutdown`.
@@ -234,7 +238,13 @@ links: z.array(LinkGroupSchema).default([]),
 
 - [ ] **Step 1: Failing test.** With execCtx (db + current chat in a link group), calling the tool with `{channel:'email', text:'hi'}` enqueues an outbox row with `provider='email'` + the linked member's id (resolved from the active thread's group). A channel NOT in the active group → returns an error (no outbox row).
 - [ ] **Step 2: Run, fail.**
-- [ ] **Step 3: Implement** `sendMessageTool(config)` → `ToolHandler`. `execute(input, execCtx)`: find the active thread's link group by matching execCtx (channel + providerChatId) to a group; validate `input.channel` is a member; resolve that member's id; `enqueueOutbox(execCtx.db, { channel, providerChatId, kind:'text', text })`. Reject non-member channels with a clear error. Gate registration on `config.links.length > 0`.
+- [ ] **Step 3: Implement** `sendMessageTool(config)` → `ToolHandler`. `execute(input, execCtx)`:
+  1. Find the active thread's link group by matching `execCtx.channel` + `execCtx.providerChatId` against each group's `primary` (after D1, execCtx carries the PRIMARY identity) or members. No group / no links → clear error.
+  2. Validate `input.channel` is a member of that group; else error (this is the §6 safety guard — agent can only send to linked identities).
+  3. Resolve the target member's `{channel, id}`, then get its internal chat ULID via `ChatsRepo.upsertChat(db, { provider: member.channel, provider_chat_id: member.id, type:'private' })`.
+  4. Enqueue with the REAL `outbox.repo` field names (snake_case; `chat_id` is required):
+     `enqueueOutbox(execCtx.db, { chat_id: targetChat.id, provider: member.channel, provider_chat_id: member.id, kind: 'text', text: input.text })`.
+  Gate registration on `config.links.length > 0`.
 - [ ] **Step 4: Pass + gate.**
 - [ ] **Step 5: Commit** — `feat(tools): send_message — agent replies on a chosen linked channel`.
 
