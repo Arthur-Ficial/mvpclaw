@@ -26,6 +26,7 @@ import { mcpCmd } from './cmd/mcp.cmd.js';
 import { memoryCmd } from './cmd/memory.cmd.js';
 import { outboxCmd } from './cmd/outbox.cmd.js';
 import { replayCmd } from './cmd/replay.cmd.js';
+import { restartCmd } from './cmd/restart.cmd.js';
 import { reviveCmd } from './cmd/revive.cmd.js';
 import { sendCmd } from './cmd/send.cmd.js';
 import { skillCmd } from './cmd/skill.cmd.js';
@@ -61,6 +62,7 @@ const main = defineCommand({
     start: startCmd,
     kill: killCmd,
     revive: reviveCmd,
+    restart: restartCmd,
   },
 });
 

@@ -16,6 +16,7 @@ import { spawnSync } from 'node:child_process';
 import { homedir, userInfo } from 'node:os';
 import { join } from 'node:path';
 import { DAEMON_LABEL, disengageKillswitch } from '../../killswitch/index.js';
+import { detectInit, startCommand } from '../../platform/index.js';
 import { resolveOutputContext, writeOut } from '../output.js';
 import { commonArgs } from './_common.js';
 
@@ -30,17 +31,27 @@ export const reviveCmd = defineCommand({
     const removed = disengageKillswitch();
     const plist = join(homedir(), 'Library', 'LaunchAgents', `${DAEMON_LABEL}.plist`);
     const uid = String(userInfo().uid);
-    const bootstrap = spawnSync('/bin/launchctl', ['bootstrap', `gui/${uid}`, plist], {
+    // OS-aware start: launchctl bootstrap (macOS) or `systemctl --user start` (Linux).
+    const init = detectInit(process.platform);
+    const start = startCommand(init, { label: DAEMON_LABEL, plistPath: plist, uid });
+    const bootstrap = spawnSync(start.cmd, start.args, {
       stdio: ['ignore', 'pipe', 'pipe'],
       encoding: 'utf8',
     });
     let alreadyLoaded = false;
     if (bootstrap.status !== 0) {
-      const printed = spawnSync('/bin/launchctl', ['print', `gui/${uid}/${DAEMON_LABEL}`], {
-        stdio: ['ignore', 'pipe', 'pipe'],
-        encoding: 'utf8',
-      });
-      alreadyLoaded = printed.status === 0;
+      // Non-zero may just mean "already running" — confirm via an is-active probe.
+      const probe =
+        init === 'launchd'
+          ? spawnSync('/bin/launchctl', ['print', `gui/${uid}/${DAEMON_LABEL}`], {
+              stdio: ['ignore', 'pipe', 'pipe'],
+              encoding: 'utf8',
+            })
+          : spawnSync('systemctl', ['--user', 'is-active', `${DAEMON_LABEL}.service`], {
+              stdio: ['ignore', 'pipe', 'pipe'],
+              encoding: 'utf8',
+            });
+      alreadyLoaded = probe.status === 0;
     }
     const ok = bootstrap.status === 0 || alreadyLoaded;
     writeOut(

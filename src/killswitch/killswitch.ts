@@ -25,6 +25,7 @@ import { spawn, spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { homedir, userInfo } from 'node:os';
 import { dirname, join } from 'node:path';
+import { detectInit, stopCommand } from '../platform/index.js';
 
 /** Resolve the sentinel file path. Tests override. */
 export function killswitchPath(override?: string): string {
@@ -108,7 +109,13 @@ export function killDaemon(opts: {
       const r = spawnSync(cmd, args, { stdio: ['ignore', 'ignore', 'pipe'], encoding: 'utf8' });
       return { status: r.status, stderr: r.stderr ?? '' };
     });
-  const r = run('/bin/launchctl', ['bootout', `gui/${uid}`, plist]);
+  // OS-aware: launchctl bootout on macOS, `systemctl --user stop` on Linux.
+  const stop = stopCommand(detectInit(process.platform), {
+    label: DAEMON_LABEL,
+    plistPath: plist,
+    uid,
+  });
+  const r = run(stop.cmd, stop.args);
   const bootedOut = r.status === 0;
   const alreadyStopped = !bootedOut;
   return {

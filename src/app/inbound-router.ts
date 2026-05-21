@@ -170,11 +170,9 @@ function handleBuiltinCommand(command: string): string | null {
       return 'Skills: research, debugging. Invoke a skill by prefixing your message with /skill-name.';
     case 'killswitch':
       return (
-        '🛑 *Killswitch engaged.* I am shutting down hard and the watchdog will NOT restart me.\n\n' +
-        'To revive from a terminal:\n' +
-        '`mvpclaw revive`\n\n' +
-        'Or manually:\n' +
-        '`rm ~/.mvpclaw/killswitch && launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.mvpclaw.daemon.plist`'
+        '🛑 *Killswitch engaged.* I am shutting down hard and will NOT restart.\n\n' +
+        'To revive from a terminal (cross-platform — systemd on Linux, launchd on macOS):\n' +
+        '`mvpclaw revive`'
       );
     default:
       return null;

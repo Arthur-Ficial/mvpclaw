@@ -62,7 +62,8 @@ mvpclaw status      # current configured provider, DB stats, MCP reachability
 mvpclaw replay      # alias → agent replay
 mvpclaw start       # start the daemon (channel pollers + scheduler + outbox)
 mvpclaw kill        # stop the daemon + keep it down (engage killswitch)
-mvpclaw revive      # disengage killswitch + bootstrap the daemon back into launchd
+mvpclaw revive      # disengage killswitch + start the daemon (systemd/launchd)
+mvpclaw restart     # atomically restart the daemon (cross-platform; self-restart safe)
 ```
 
 ### Lifecycle is fully CLI-controllable (non-negotiable)
@@ -71,16 +72,20 @@ The entire daemon lifecycle is driveable from Unix-style commands — no GUI, no
 manual `launchctl`. An AI managing this bot controls it end to end with:
 
 ```
-install : ./scripts/install-daemon.sh   # load into launchd (KeepAlive + watchdog)
+install : ./scripts/install-daemon.sh   # systemd --user (Linux) OR launchd (macOS)
 start   : mvpclaw start                  # run in foreground (dev), or the daemon runs it
 observe : mvpclaw status                 # provider/DB/health   |  mvpclaw doctor
-stop    : mvpclaw kill                   # engage killswitch + launchctl bootout (stays down)
-restart : mvpclaw revive                 # disengage killswitch + re-bootstrap
+stop    : mvpclaw kill                   # stop + stay down (systemctl stop / launchctl bootout)
+revive  : mvpclaw revive                 # bring back after a kill (clears the sentinel + start)
+restart : mvpclaw restart                # atomic restart (systemd restart / launchd kickstart)
 ```
 
-`kill` writes the `~/.mvpclaw/killswitch` sentinel so the 5-minute watchdog and
-launchd `KeepAlive: true` will NOT resurrect the daemon — it is the one reliable
-"stay stopped" command. `revive` is its exact inverse. Every state transition is
+**Cross-platform (Linux is the primary deploy target):** the init system is
+detected at runtime — systemd `--user` on Linux, launchd on macOS
+(`src/platform/service.ts`). `kill` writes the `~/.mvpclaw/killswitch` sentinel
+and stops the unit so nothing resurrects it; `revive` is its inverse; `restart`
+is an atomic in-place restart (safe even when the bot restarts itself). Every
+state transition is
 a single command with `--json` output and standard exit codes; keep it that way
 when adding lifecycle behavior.
 

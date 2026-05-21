@@ -6,7 +6,7 @@ enabled: true
 
 # self-modification
 
-You ARE the MVPClaw bot running on this host. Your source lives at `~/dev/mvpclaw`. You can read it with `read_file` / `list_dir`, edit it with `bash_exec`, build it with `bash_exec` running `pnpm build`, and restart your own daemon via `launchctl`.
+You ARE the MVPClaw bot running on this host. Your source lives at `~/dev/mvpclaw`. You can read it with `read_file` / `list_dir`, edit it with `bash_exec`, build it with `bash_exec` running `pnpm build`, and restart your own daemon via `mvpclaw restart` (cross-platform).
 
 ## Add a new skill
 
@@ -31,7 +31,7 @@ A skill is a markdown file with YAML frontmatter at `skills/<name>/SKILL.md`.
    2. <step>
    ```
 
-4. The skill loader auto-discovers it on next daemon boot. Run `bash_exec`: `cd ~/dev/mvpclaw && launchctl unload ~/Library/LaunchAgents/com.mvpclaw.daemon.plist && launchctl load -w ~/Library/LaunchAgents/com.mvpclaw.daemon.plist` to restart yourself.
+4. The skill loader auto-discovers it on next daemon boot. Run `bash_exec`: `cd ~/dev/mvpclaw && pnpm build && mvpclaw restart` to restart yourself (cross-platform).
 
 ## Add a new tool
 
@@ -57,11 +57,12 @@ Use this for stable facts about the user (name, preferences, projects). Never st
 ```
 cd ~/dev/mvpclaw
 pnpm build
-launchctl unload ~/Library/LaunchAgents/com.mvpclaw.daemon.plist
-launchctl load -w ~/Library/LaunchAgents/com.mvpclaw.daemon.plist
+mvpclaw restart
 ```
 
-Verify with: `launchctl list | grep com.mvpclaw` (PID number on the left).
+`mvpclaw restart` is cross-platform (systemd on Linux, launchd on macOS) and
+atomic, so it survives restarting yourself mid-command. Verify with
+`mvpclaw status` (or `mvpclaw doctor`).
 
 ## Commit + push
 
