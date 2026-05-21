@@ -26,6 +26,32 @@ export interface SkillLoadResult {
   errors: LoadedSkillError[];
 }
 
+/** Config-driven skill on/off lists (the SSOT; overrides frontmatter). */
+export interface SkillToggles {
+  /** Allowlist — if non-empty, ONLY these skills are enabled. */
+  enabled: readonly string[];
+  /** Denylist — wins over everything; these skills are always disabled. */
+  disabled: readonly string[];
+}
+
+const NO_TOGGLES: SkillToggles = { enabled: [], disabled: [] };
+
+/**
+ * Resolve whether a skill is enabled, applying config-over-frontmatter.
+ *
+ * Precedence: `disabled` wins; otherwise a non-empty `enabled` acts as an
+ * allowlist; otherwise the SKILL.md frontmatter default applies.
+ */
+function resolveEnabled(name: string, frontmatterEnabled: boolean, toggles: SkillToggles): boolean {
+  if (toggles.disabled.includes(name)) {
+    return false;
+  }
+  if (toggles.enabled.length > 0) {
+    return toggles.enabled.includes(name);
+  }
+  return frontmatterEnabled;
+}
+
 /**
  * Scan a directory for `<name>/SKILL.md` files and return the validated set.
  *
@@ -35,9 +61,14 @@ export interface SkillLoadResult {
  *
  * @param skillsDir - The skills root directory.
  * @param db - Open SQLite handle (the function upserts each valid skill).
+ * @param toggles - Config enable/disable lists (SSOT, overrides frontmatter).
  * @returns A `SkillLoadResult` with the in-memory skill list + per-file errors.
  */
-export function loadSkillsFromDir(skillsDir: string, db: Db): SkillLoadResult {
+export function loadSkillsFromDir(
+  skillsDir: string,
+  db: Db,
+  toggles: SkillToggles = NO_TOGGLES,
+): SkillLoadResult {
   const result: SkillLoadResult = { skills: [], errors: [] };
   let entries: string[];
   try {
@@ -48,7 +79,7 @@ export function loadSkillsFromDir(skillsDir: string, db: Db): SkillLoadResult {
   }
   const upsert = db.prepare(
     `INSERT INTO skills (name, path, description, enabled, updated_at)
-     VALUES (?, ?, ?, 1, ?)
+     VALUES (?, ?, ?, ?, ?)
      ON CONFLICT(name) DO UPDATE SET
        path = excluded.path,
        description = excluded.description,
@@ -86,12 +117,19 @@ export function loadSkillsFromDir(skillsDir: string, db: Db): SkillLoadResult {
       continue;
     }
     const absPath = resolve(skillPath);
-    upsert.run(validated.name, absPath, validated.description, new Date().toISOString());
+    const enabled = resolveEnabled(validated.name, validated.enabled, toggles);
+    upsert.run(
+      validated.name,
+      absPath,
+      validated.description,
+      enabled ? 1 : 0,
+      new Date().toISOString(),
+    );
     result.skills.push({
       name: validated.name,
       description: validated.description,
       path: absPath,
-      enabled: true,
+      enabled,
     });
   }
   return result;

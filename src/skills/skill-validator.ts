@@ -10,7 +10,7 @@ import matter from 'gray-matter';
 
 /** Outcome of `validateSkillFile()`. */
 export type ValidationResult =
-  | { ok: true; name: string; description: string; body: string }
+  | { ok: true; name: string; description: string; body: string; enabled: boolean }
   | { ok: false; error: string };
 
 /** Required YAML frontmatter keys for a SKILL.md. */
@@ -47,5 +47,8 @@ export function validateSkillFile(raw: string): ValidationResult {
       error: `name "${name}" must match [a-z][a-z0-9-]* (lowercase, no spaces, no underscores)`,
     };
   }
-  return { ok: true, name, description, body: parsed.content.trim() };
+  // `enabled` is an optional frontmatter default; only an explicit `false`
+  // disables. Config (skills.enabled/disabled) overrides this at load time.
+  const enabled = data['enabled'] !== false;
+  return { ok: true, name, description, body: parsed.content.trim(), enabled };
 }

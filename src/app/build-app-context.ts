@@ -132,7 +132,10 @@ export function buildAppContext(
   // so Claude CLI discovers them via its standard mechanism.
   let skills: readonly LoadedSkill[] = [];
   if (config.skills.loadAll) {
-    const loaded = loadSkillsFromDir(resolve(process.cwd(), config.skills.skillsDir), db);
+    const loaded = loadSkillsFromDir(resolve(process.cwd(), config.skills.skillsDir), db, {
+      enabled: config.skills.enabled,
+      disabled: config.skills.disabled,
+    });
     skills = loaded.skills;
     if (loaded.errors.length > 0) {
       for (const e of loaded.errors) {

@@ -89,4 +89,20 @@ describe('validateSkillFile', () => {
     const r = validateSkillFile('# Just a markdown body, no YAML frontmatter\n\nLorem.');
     expect(r.ok).toBe(false);
   });
+
+  it('defaults enabled to true when frontmatter omits the key', () => {
+    const r = validateSkillFile(frontmatter('name: my-skill\ndescription: x'));
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.enabled).toBe(true);
+    }
+  });
+
+  it('reads enabled: false from frontmatter', () => {
+    const r = validateSkillFile(frontmatter('name: my-skill\ndescription: x\nenabled: false'));
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.enabled).toBe(false);
+    }
+  });
 });

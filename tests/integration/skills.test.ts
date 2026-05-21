@@ -73,6 +73,41 @@ describe('skills layer — validate, load, sync', () => {
     }
   });
 
+  it('loadSkillsFromDir resolves enabled with config-over-frontmatter precedence', () => {
+    const tmp = mkdtempSync(join(tmpdir(), 'mvpclaw-skills-toggle-'));
+    try {
+      mkdirSync(join(tmp, 'aaa'), { recursive: true });
+      mkdirSync(join(tmp, 'bbb'), { recursive: true });
+      // aaa: frontmatter-enabled; bbb: frontmatter-disabled.
+      writeFileSync(join(tmp, 'aaa', 'SKILL.md'), `---\nname: aaa\ndescription: d\n---\nbody`);
+      writeFileSync(
+        join(tmp, 'bbb', 'SKILL.md'),
+        `---\nname: bbb\ndescription: d\nenabled: false\n---\nbody`,
+      );
+      const enabledOf = (toggles: { enabled: string[]; disabled: string[] }) => {
+        const db = openDb(':memory:');
+        applyMigrations(db, MIGRATIONS);
+        const r = loadSkillsFromDir(tmp, db, toggles);
+        const map = Object.fromEntries(r.skills.map((s) => [s.name, s.enabled]));
+        db.close();
+        return map;
+      };
+      // Empty lists → frontmatter default applies.
+      expect(enabledOf({ enabled: [], disabled: [] })).toEqual({ aaa: true, bbb: false });
+      // disabled wins over frontmatter-enabled.
+      expect(enabledOf({ enabled: [], disabled: ['aaa'] })).toEqual({ aaa: false, bbb: false });
+      // non-empty enabled is an allowlist (overrides frontmatter-disabled bbb).
+      expect(enabledOf({ enabled: ['bbb'], disabled: [] })).toEqual({ aaa: false, bbb: true });
+      // disabled beats enabled for the same name.
+      expect(enabledOf({ enabled: ['aaa'], disabled: ['aaa'] })).toEqual({
+        aaa: false,
+        bbb: false,
+      });
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
   it('syncSkillsToWorkspace copies and is idempotent', () => {
     const src = mkdtempSync(join(tmpdir(), 'mvpclaw-skills-src-'));
     const dst = mkdtempSync(join(tmpdir(), 'mvpclaw-skills-dst-'));

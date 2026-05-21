@@ -88,7 +88,9 @@ describe('config loader — env substitution + Zod validation', () => {
     const path = join(tmp, 'cfg.json');
     writeFileSync(
       path,
-      JSON.stringify({ skills: { enabled: ['email', 'github-deploy'], disabled: ['self-modification'] } }),
+      JSON.stringify({
+        skills: { enabled: ['email', 'github-deploy'], disabled: ['self-modification'] },
+      }),
     );
     const config = loadConfig(path);
     expect(config.skills.enabled).toEqual(['email', 'github-deploy']);
